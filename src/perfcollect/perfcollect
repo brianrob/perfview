@@ -1707,23 +1707,33 @@ ProcessCollectedData()
         # I've not found a good way to get the behavior that we want here - running the command and redirecting the output
         # when passing the command line to a function.  Thus, this case is hardcoded.
 
+        # The CPU field isn't available in some container environments.  Check to see if we can get it before asking for it.
+        LogAppend "Checking to see if we can get the CPU field via perf script."
+        $perfcmd script -i $inputFile -F cpu > /dev/null 2>>$logFile
+        if [ $? -eq 0 ]
+        then
+            cpuField="cpu"
+        else
+            cpuFiled=""
+        fi
+
         # There is a breaking change where the capitalization of the -f parameter changed.
-        LogAppend "Running $perfcmd script -i $inputFile -F comm,pid,tid,cpu,time,period,event,ip,sym,dso,trace > $outputDumpFile"
-        $perfcmd script -i $inputFile -F comm,pid,tid,cpu,time,period,event,ip,sym,dso,trace > $outputDumpFile 2>>$logFile
+        LogAppend "Running $perfcmd script -i $inputFile -F comm,pid,tid,$cpuField,time,period,event,ip,sym,dso,trace > $outputDumpFile"
+        $perfcmd script -i $inputFile -F comm,pid,tid,$cpuField,time,period,event,ip,sym,dso,trace > $outputDumpFile 2>>$logFile
         LogAppend
 
         if [ $? -ne 0 ]
         then
-            LogAppend "Running $perfcmd script -i $inputFile -f comm,pid,tid,cpu,time,period,event,ip,sym,dso,trace > $outputDumpFile"
-            $perfcmd script -i $inputFile -f comm,pid,tid,cpu,time,period,event,ip,sym,dso,trace > $outputDumpFile 2>>$logFile
+            LogAppend "Running $perfcmd script -i $inputFile -f comm,pid,tid,$cpuField,time,period,event,ip,sym,dso,trace > $outputDumpFile"
+            $perfcmd script -i $inputFile -f comm,pid,tid,$cpuField,time,period,event,ip,sym,dso,trace > $outputDumpFile 2>>$logFile
             LogAppend
         fi
 
         # If the dump file is zero length, try to collect without the period field, which was added recently.
         if [ ! -s $outputDumpFile ]
         then
-            LogAppend "Running $perfcmd script -i $inputFile -f comm,pid,tid,cpu,time,event,ip,sym,dso,trace > $outputDumpFile"
-            $perfcmd script -i $inputFile -f comm,pid,tid,cpu,time,event,ip,sym,dso,trace > $outputDumpFile 2>>$logFile
+            LogAppend "Running $perfcmd script -i $inputFile -f comm,pid,tid,$cpuField,time,event,ip,sym,dso,trace > $outputDumpFile"
+            $perfcmd script -i $inputFile -f comm,pid,tid,$cpuField,time,event,ip,sym,dso,trace > $outputDumpFile 2>>$logFile
             LogAppend
         fi
 
