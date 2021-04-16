@@ -5210,6 +5210,20 @@ table {
                 };
                 eventSource.Process();
             }
+            else if (streamName.StartsWith("Extra ClrStack Events"))
+            {
+                TraceLog traceLog = GetTraceLog(log);
+                sample.Metric = 1;
+                foreach (CallStackIndex stackIndex in traceLog.extraStacks)
+                {
+                    if (stackIndex != CallStackIndex.Invalid)
+                    {
+                        StackSourceCallStackIndex callStackIndex = stackSource.GetCallStack(stackIndex, null);
+                        sample.StackIndex = callStackIndex;
+                        stackSource.AddSample(sample);
+                    }
+                }
+            }
             else if (streamName.StartsWith("Any"))
             {
                 ActivityComputer activityComputer = null;
@@ -7011,6 +7025,7 @@ table {
             bool hasTypeLoad = false;
             bool hasAssemblyLoad = false;
             bool hasJIT = false;
+            bool hasClrStacks = false;
 
             var stackEvents = new List<TraceEventCounts>();
             foreach (var counts in tracelog.Stats)
@@ -7082,6 +7097,10 @@ table {
                 if (name.StartsWith("Loader/AssemblyLoad"))
                 {
                     hasAssemblyLoad = true;
+                }
+                if(name.StartsWith("ClrStack/Walk"))
+                {
+                    hasClrStacks = true;
                 }
 
                 if (counts.StackCount > 0)
@@ -7394,6 +7413,11 @@ table {
             if (hasJIT || hasAssemblyLoad || hasTypeLoad)
             {
                 advanced.Children.Add(new PerfViewRuntimeLoaderStats(this));
+            }
+
+            if(hasClrStacks)
+            {
+                advanced.Children.Add(new PerfViewStackSource(this, "Extra ClrStack Events"));
             }
 
             advanced.Children.Add(new PerfViewEventStats(this));

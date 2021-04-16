@@ -1508,6 +1508,9 @@ namespace Microsoft.Diagnostics.Tracing.Etlx
                     if (prevEventIndex == PastEventInfoIndex.Invalid)
                     {
                         DebugWarn(false, "Could not find a previous event for a CLR stack trace.", data);
+                        CallStackIndex callStackIndex = callStacks.GetStackIndexForStackEvent(
+                            data.InstructionPointers, data.FrameCount, data.PointerSize, thread);
+                        extraStacks.Add(callStackIndex);
                         return;
                     }
                     if (pastEventInfo.IsClrEvent(prevEventIndex))
@@ -3614,6 +3617,13 @@ namespace Microsoft.Diagnostics.Tracing.Etlx
                 serializer.Log("</WriteCollection>\r\n");
             });
 
+            serializer.Write(extraStacks.Count);
+            for(int i=0; i< extraStacks.Count; i++)
+            {
+                serializer.Write((int)extraStacks[i]);
+            }
+            serializer.Write(extraStacks.Count);
+
             serializer.Log("<Marker Name=\"cswitchBlockingEventsToStacks\"/>");
             lazyEventsToStacks.Write(serializer, delegate
             {
@@ -3756,6 +3766,20 @@ namespace Microsoft.Diagnostics.Tracing.Etlx
                 }
             });
             lazyEventsToStacks.FinishRead();        // TODO REMOVE
+
+            int extraStackCount = deserializer.ReadInt();
+            extraStacks = new GrowableArray<CallStackIndex>(extraStackCount + 1);
+            CallStackIndex callStackIndex = new CallStackIndex();
+            for (int i = 0; i < extraStackCount; i++)
+            {
+                callStackIndex = (CallStackIndex)deserializer.ReadInt();
+                extraStacks.Add(callStackIndex);
+            }
+            int extraStackCountCheck = deserializer.ReadInt();
+            if (extraStackCount != extraStackCountCheck)
+            {
+                throw new SerializationException("Redundant extra stack count check fail.");
+            }
 
             lazyCswitchBlockingEventsToStacks.Read(deserializer, delegate
             {
@@ -3909,6 +3933,7 @@ namespace Microsoft.Diagnostics.Tracing.Etlx
 
         private TraceModuleFiles moduleFiles;
         private GrowableArray<EventsToStackIndex> eventsToStacks;
+        public GrowableArray<CallStackIndex> extraStacks;
         /// <summary>
         /// The context switch event gives the stack of the thread GETTING the CPU, but it is also very useful
         /// to have this stack at the point of blocking.   cswitchBlockingEventsToStacks gives this stack.  
