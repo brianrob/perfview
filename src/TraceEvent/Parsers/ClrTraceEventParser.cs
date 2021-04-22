@@ -191,11 +191,16 @@ namespace Microsoft.Diagnostics.Tracing.Parsers
             TypeDiagnostic = 0x8000000000,
 
             /// <summary>
+            /// Diagnostic events for yield processor normalized.
+            /// </summary>
+            YieldProcessorNormalized = 0x20000000000,
+
+            /// <summary>
             /// Recommend default flags (good compromise on verbosity).  
             /// </summary>
             Default = GC | Type | GCHeapSurvivalAndMovement | Binder | Loader | Jit | NGen | SupressNGen
                          | StopEnumeration | Security | AppDomainResourceManagement | Exception | Threading | Contention | Stack | JittedMethodILToNativeMap
-                         | ThreadTransfer | GCHeapAndTypeNames | Codesymbols | Compilation,
+                         | ThreadTransfer | GCHeapAndTypeNames | Codesymbols | Compilation | YieldProcessorNormalized,
 
             /// <summary>
             /// What is needed to get symbols for JIT compiled code.  
@@ -827,6 +832,17 @@ namespace Microsoft.Diagnostics.Tracing.Parsers
             {
                 source.UnregisterEventTemplate(value, 44, ProviderGuid);
                 source.UnregisterEventTemplate(value, 1, IOThreadCreationTaskGuid);
+            }
+        }
+        public event Action<InitializeYieldProcessorNormalizedTraceData> InitializeYieldProcessorNormalized
+        {
+            add
+            {
+                RegisterTemplate(new InitializeYieldProcessorNormalizedTraceData(value, 58, 35, "InitializeYieldProcessorNormalized", InitializeYieldProcessorNormalizedTaskGuid, 0, "", ProviderGuid, ProviderName));
+            }
+            remove
+            {
+                source.UnregisterEventTemplate(value, 58, InitializeYieldProcessorNormalizedTaskGuid);
             }
         }
         public event Action<IOThreadTraceData> IOThreadCreationStop
@@ -2086,7 +2102,7 @@ namespace Microsoft.Diagnostics.Tracing.Parsers
         {
             if (s_templates == null)
             {
-                var templates = new TraceEvent[139];
+                var templates = new TraceEvent[140];
                 templates[0] = new GCStartTraceData(null, 1, 1, "GC", GCTaskGuid, 1, "Start", ProviderGuid, ProviderName);
                 templates[1] = new GCEndTraceData(null, 2, 1, "GC", GCTaskGuid, 2, "Stop", ProviderGuid, ProviderName);
                 templates[2] = new GCNoUserDataTraceData(null, 3, 1, "GC", GCTaskGuid, 132, "RestartEEStop", ProviderGuid, ProviderName);
@@ -2234,6 +2250,8 @@ namespace Microsoft.Diagnostics.Tracing.Parsers
                 templates[137] = JitInstrumentationDataTemplate(null);
                 templates[138] = JitInstrumentationDataVerboseTemplate(null);
 
+                templates[139] = new InitializeYieldProcessorNormalizedTraceData(null, 58, 35, "InitializeYieldProcessorNormalized", InitializeYieldProcessorNormalizedTaskGuid, 0, "", ProviderGuid, ProviderName);
+
                 s_templates = templates;
             }
 
@@ -2300,6 +2318,8 @@ namespace Microsoft.Diagnostics.Tracing.Parsers
         private static readonly Guid TieredCompilationTaskGuid = new Guid(unchecked((int)0xa77f474d), unchecked((short)0x9d0d), unchecked((short)0x4311), 0xb9, 0x8e, 0xcf, 0xbc, 0xf8, 0x4b, 0x9e, 0xf);
         private static readonly Guid TypeLoadTaskGuid = new Guid(unchecked((int)0x9db1562b), unchecked((short)0x512f), unchecked((short)0x475d), 0x8d, 0x4c, 0x0c, 0x6d, 0x97, 0xc1, 0xe7, 0x3c);
         private static readonly Guid JitInstrumentationDataTaskGuid = new Guid(unchecked((int)0xf8666925), unchecked((short)0x22c8), unchecked((short)0x4b70), 0xa1, 0x31, 0x07, 0x38, 0x13, 0x7e, 0x7f, 0x25);
+        private static readonly Guid InitializeYieldProcessorNormalizedTaskGuid = new Guid(unchecked((int)0x7f644185), unchecked((short)0xfd46), unchecked((short)0x4acc), 0xa4, 0xb2, 0x38, 0x12, 0x64, 0x60, 0x54, 0xbd);
+
 
         // TODO remove if project N's Guids are harmonized with the desktop 
         private void RegisterTemplate(TraceEvent template)
@@ -7750,6 +7770,74 @@ namespace Microsoft.Diagnostics.Tracing.Parsers.Clr
         }
 
         private event Action<ClrWorkerThreadTraceData> Action;
+        #endregion
+    }
+    public sealed class InitializeYieldProcessorNormalizedTraceData : TraceEvent
+    {
+        public int YieldsPerNormalizedYield { get { return GetInt32At(0); } }
+        public int OptimalMaxNormalizedYieldsPerSpinIteration { get { return GetInt32At(4); } }
+        public int ClrInstanceID { get { return GetInt16At(8); } }
+
+        #region Private
+        internal InitializeYieldProcessorNormalizedTraceData(Action<InitializeYieldProcessorNormalizedTraceData> action, int eventID, int task, string taskName, Guid taskGuid, int opcode, string opcodeName, Guid providerGuid, string providerName)
+            : base(eventID, task, taskName, taskGuid, opcode, opcodeName, providerGuid, providerName)
+        {
+            Action = action;
+        }
+        protected internal override void Dispatch()
+        {
+            Action(this);
+        }
+        protected internal override void Validate()
+        {
+            Debug.Assert(!(Version == 0 && EventDataLength != 10));
+            Debug.Assert(!(Version > 0 && EventDataLength < 10));
+        }
+        protected internal override Delegate Target
+        {
+            get { return Action; }
+            set { Action = (Action<InitializeYieldProcessorNormalizedTraceData>)value; }
+        }
+        public override StringBuilder ToXml(StringBuilder sb)
+        {
+            Prefix(sb);
+            XmlAttrib(sb, "YieldsPerNormalizedYield", YieldsPerNormalizedYield);
+            XmlAttrib(sb, "OptimalMaxNormalizedYieldsPerSpinIteration", OptimalMaxNormalizedYieldsPerSpinIteration);
+            XmlAttrib(sb, "ClrInstanceID", ClrInstanceID);
+            sb.Append("/>");
+            return sb;
+        }
+
+        public override string[] PayloadNames
+        {
+            get
+            {
+                if (payloadNames == null)
+                    payloadNames = new string[] { "YieldsPerNormalizedYield", "OptimalMaxNormalizedYieldsPerSpinIteration", "ClrInstanceID" };
+                return payloadNames;
+            }
+        }
+
+        public override object PayloadValue(int index)
+        {
+            switch (index)
+            {
+                case 0:
+                    return YieldsPerNormalizedYield;
+                case 1:
+                    return OptimalMaxNormalizedYieldsPerSpinIteration;
+                case 2:
+                    return ClrInstanceID;
+                default:
+                    Debug.Assert(false, "Bad field index");
+                    return null;
+            }
+        }
+
+        public static ulong GetKeywords() { return 65536; }
+        public static string GetProviderName() { return "Microsoft-Windows-DotNETRuntime"; }
+        public static Guid GetProviderGuid() { return new Guid("e13c0d23-ccbc-4e12-931b-d9cc2eee27e4"); }
+        private event Action<InitializeYieldProcessorNormalizedTraceData> Action;
         #endregion
     }
     public sealed class IOThreadTraceData : TraceEvent
