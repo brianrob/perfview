@@ -687,6 +687,8 @@ namespace Microsoft.Diagnostics.Tracing.Analysis
                     {
                         stats.GC.m_stats.allocTickCurrentMB[1] += valueMB;
                     }
+
+                    stats.UncollectedeAllocationTicks++;
                 };
 
                 source.Clr.GCStart += delegate (GCStartTraceData data)
@@ -706,6 +708,8 @@ namespace Microsoft.Diagnostics.Tracing.Analysis
                         _gc.Type = data.Type;
                         _gc.Index = stats.GC.GCs.Count;
                         _gc.is20Event = data.IsClassicProvider;
+                        _gc.AllocationTicks = stats.UncollectedeAllocationTicks;
+                        stats.UncollectedeAllocationTicks = 0;
                         bool isEphemeralGCAtBGCStart = false;
                         // Detecting the ephemeral GC that happens at the beginning of a BGC.
                         if (stats.GC.GCs.Count > 0)
@@ -1480,6 +1484,8 @@ namespace Microsoft.Diagnostics.Tracing.Analysis
             clrRundownParser.TieredCompilationRundownSettingsDCStart += onTieredCompilationSettings;
         }
 
+        internal int UncollectedeAllocationTicks { get; set; }
+
         private Version runtimeVersion;
 
 #endregion
@@ -1849,6 +1855,8 @@ namespace Microsoft.Diagnostics.Tracing.Analysis.GC
         public BGCPhase BGCCurrentPhase;
         public BGCRevisitInfo[][] BGCRevisitInfoArr;
         public double BGCFinalPauseMSec;
+
+        public int AllocationTicks;
 
         public void EnsureBGCRevisitInfoAlloc()
         {

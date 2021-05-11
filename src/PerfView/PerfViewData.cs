@@ -4532,6 +4532,80 @@ table {
                 eventSource.Process();
                 m_extraTopStats = "Sampled only 100K bytes";
             }
+            else if (streamName == "GC Latency Per Alloc (Coarse Sampling)")
+            {
+                // Build up the set of GCs.
+                Dictionary<int, Microsoft.Diagnostics.Tracing.Analysis.TraceLoadedDotNetRuntime> loadedRuntimes = new Dictionary<int, Microsoft.Diagnostics.Tracing.Analysis.TraceLoadedDotNetRuntime>();
+                Microsoft.Diagnostics.Tracing.Analysis.TraceLoadedDotNetRuntimeExtensions.NeedLoadedDotNetRuntimes(eventSource);
+                Microsoft.Diagnostics.Tracing.Analysis.TraceProcessesExtensions.AddCallbackOnProcessStart(eventSource, proc =>
+                {
+                    Microsoft.Diagnostics.Tracing.Analysis.TraceProcessesExtensions.SetSampleIntervalMSec(proc, (float)m_traceLog.SampleProfileInterval.TotalMilliseconds);
+                    proc.Log = m_traceLog;
+                });
+                eventSource.Process();
+
+                // Keep track of the next GC in each process.
+                Dictionary<int, int> processToNextGCIndex = new Dictionary<int, int>();
+
+                foreach (var proc in Microsoft.Diagnostics.Tracing.Analysis.TraceProcessesExtensions.Processes(eventSource))
+                {
+                    Microsoft.Diagnostics.Tracing.Analysis.TraceLoadedDotNetRuntime runtime = Microsoft.Diagnostics.Tracing.Analysis.TraceLoadedDotNetRuntimeExtensions.LoadedDotNetRuntime(proc);
+                    if (runtime != null)
+                    {
+                        loadedRuntimes.Add(proc.ProcessID, runtime);
+                        processToNextGCIndex.Add(proc.ProcessID, 0);
+                    }
+                }
+
+                TypeNameSymbolResolver typeNameSymbolResolver = new TypeNameSymbolResolver(FilePath, log);
+
+                eventSource.Clr.GCAllocationTick += delegate (GCAllocationTickTraceData data)
+                {
+                    sample.TimeRelativeMSec = data.TimeStampRelativeMSec;
+
+                    var stackIndex = stackSource.GetCallStack(data.CallStackIndex(), data);
+
+                    var typeName = data.TypeName;
+                    if (string.IsNullOrEmpty(typeName))
+                    {
+                        // Attempt to resolve the type name.
+                        TraceLoadedModule module = data.Process().LoadedModules.GetModuleContainingAddress(data.TypeID, data.TimeStampRelativeMSec);
+                        if (module != null)
+                        {
+                            // Resolve the type name.
+                            typeName = typeNameSymbolResolver.ResolveTypeName((int)(data.TypeID - module.ModuleFile.ImageBase), module.ModuleFile, TypeNameSymbolResolver.TypeNameOptions.StripModuleName);
+                        }
+                    }
+
+                    if (typeName != null && typeName.Length > 0)
+                    {
+                        var nodeIndex = stackSource.Interner.FrameIntern("Type " + typeName);
+                        stackIndex = stackSource.Interner.CallStackIntern(nodeIndex, stackIndex);
+                    }
+
+                    sample.Metric = 0;
+                    Microsoft.Diagnostics.Tracing.Analysis.TraceLoadedDotNetRuntime runtime;
+                    if(loadedRuntimes.TryGetValue(data.ProcessID, out runtime))
+                    {
+                        var GCs = runtime.GC.GCs;
+                        int nextGCIndex = processToNextGCIndex[data.ProcessID];
+                        while (GCs.Count > nextGCIndex && data.TimeStampRelativeMSec > runtime.GC.GCs[nextGCIndex].PauseStartRelativeMSec)
+                        {
+                            processToNextGCIndex[data.ProcessID] = nextGCIndex++;
+                        }
+                        if(nextGCIndex < GCs.Count)
+                        {
+                            var gc = runtime.GC.GCs[nextGCIndex];
+                            sample.Metric = (float)(gc.PauseDurationMSec / gc.AllocationTicks);
+                        }
+                    }
+
+                    sample.StackIndex = stackIndex;
+                    stackSource.AddSample(sample);
+                };
+                eventSource.Process();
+                m_extraTopStats = "Sampled only 100K bytes";
+            }
             else if (streamName == "Exceptions")
             {
                 eventSource.Clr.ExceptionStart += delegate (ExceptionTraceData data)
@@ -7248,6 +7322,7 @@ table {
                     memory.Children.Add(new PerfViewStackSource(this, "Gen 2 Object Deaths (Coarse Sampling)"));
                 }
                 memory.Children.Add(new PerfViewStackSource(this, "GC Heap Alloc Ignore Free (Coarse Sampling)"));
+                memory.Children.Add(new PerfViewStackSource(this, "GC Latency Per Alloc (Coarse Sampling)"));
             }
             if (hasMemAllocStacks)
             {
