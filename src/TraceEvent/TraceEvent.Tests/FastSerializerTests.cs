@@ -12,7 +12,26 @@ namespace TraceEventTests
     public class FastSerializerTests
     {
         [Fact]
-        public void ParseStreamLabel()
+        public void ParseEightByteStreamLabel()
+        {
+            MemoryStream ms = new MemoryStream();
+            BinaryWriter writer = new BinaryWriter(ms);
+            WriteString(writer, "!FastSerialization.1");
+            writer.Write((long)0);
+            writer.Write((long)19);
+            writer.Write((long)1_000_000);
+            writer.Write((long)0xf1234567);
+
+            ms.Position = 0;
+            Deserializer d = new Deserializer(new PinnedStreamReader(ms, settings: new SerializationSettings() { StreamLabelWidth = StreamLabelWidth.EightBytes }), "name");
+            Assert.Equal((StreamLabel)0, d.ReadLabel());
+            Assert.Equal((StreamLabel)19, d.ReadLabel());
+            Assert.Equal((StreamLabel)1_000_000, d.ReadLabel());
+            Assert.Equal((StreamLabel)0xf1234567, d.ReadLabel());
+        }
+
+        [Fact]
+        public void ParseFourByteStreamLabel()
         {
             MemoryStream ms = new MemoryStream();
             BinaryWriter writer = new BinaryWriter(ms);

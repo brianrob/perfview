@@ -35,10 +35,22 @@ namespace FastSerialization
             bytes = data;
             position = start;
             endPosition = length;
+
             Settings = settings;
             if(Settings == null)
             {
                 Settings = new SerializationSettings();
+            }
+
+            if(Settings.StreamLabelWidth == StreamLabelWidth.FourBytes)
+            {
+                readLabelFunc = () => { return (StreamLabel)(uint)ReadInt32(); };
+                sizeOfSerializedStreamLabel = 4;
+            }
+            else
+            {
+                readLabelFunc = () => { return (StreamLabel)(ulong)ReadInt64(); };
+                sizeOfSerializedStreamLabel = 8;
             }
         }
 
@@ -161,7 +173,8 @@ namespace FastSerialization
         /// </summary>
         public StreamLabel ReadLabel()
         {
-            return (StreamLabel)(uint)ReadInt32();
+            // Delegate set in the constructor based on the size of StreamLabel.
+            return readLabelFunc();
         }
         /// <summary>
         /// Implementation of IStreamReader
@@ -187,7 +200,6 @@ namespace FastSerialization
         /// </summary>
         public virtual void GotoSuffixLabel()
         {
-            const int sizeOfSerializedStreamLabel = 4;
             Goto((StreamLabel)(Length - sizeOfSerializedStreamLabel));
             Goto(ReadLabel());
         }
@@ -214,6 +226,8 @@ namespace FastSerialization
         internal /*protected*/  int position;
         internal /*protected*/  int endPosition;
         private StringBuilder sb;
+        private Func<StreamLabel> readLabelFunc;
+        private readonly int sizeOfSerializedStreamLabel;
         #endregion
     }
 
@@ -850,17 +864,17 @@ namespace FastSerialization
         /// <summary>
         /// Create a new PinnedStreamReader that gets its data from a given file.  You can optionally set the size of the read buffer.  
         /// </summary>
-        public PinnedStreamReader(string fileName, int bufferSize = defaultBufferSize)
+        public PinnedStreamReader(string fileName, int bufferSize = defaultBufferSize, SerializationSettings settings = null)
             : this(new FileStream(fileName, FileMode.Open, FileAccess.Read,
-            FileShare.Read | FileShare.Delete), bufferSize)
+            FileShare.Read | FileShare.Delete), bufferSize, settings)
         { }
 
         /// <summary>
         /// Create a new PinnedStreamReader that gets its data from a given System.IO.Stream.  You can optionally set the size of the read buffer.  
         /// The stream will be closed by the PinnedStreamReader when it is closed.  
         /// </summary>
-        public PinnedStreamReader(Stream inputStream, int bufferSize = defaultBufferSize)
-            : base(inputStream, bufferSize)
+        public PinnedStreamReader(Stream inputStream, int bufferSize = defaultBufferSize, SerializationSettings settings = null)
+            : base(inputStream, bufferSize, settings: settings)
         {
             // Pin the array
             pinningHandle = System.Runtime.InteropServices.GCHandle.Alloc(bytes, System.Runtime.InteropServices.GCHandleType.Pinned);
