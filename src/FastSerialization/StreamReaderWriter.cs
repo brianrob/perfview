@@ -26,17 +26,28 @@ namespace FastSerialization
         /// <summary>
         /// Create a IStreamReader (reads binary data) from a given subregion of a byte buffer 
         /// </summary>
-        public MemoryStreamReader(byte[] data, int start, int length)
+        public MemoryStreamReader(byte[] data, int start, int length) : this(data, start, length, null) { }
+        /// <summary>
+        /// Create a IStreamReader (reads binary data) from a given subregion of a byte buffer.  Allow for serialization settings to be specified.
+        /// </summary>
+        public MemoryStreamReader(byte[] data, int start, int length, SerializationSettings settings)
         {
             bytes = data;
             position = start;
             endPosition = length;
+            Settings = settings;
+            if(Settings == null)
+            {
+                Settings = new SerializationSettings();
+            }
         }
+
         /// <summary>
         /// The total length of bytes that this reader can read.
         /// </summary>
         public virtual long Length { get { return endPosition; } }
         public virtual bool HasLength { get { return true; } }
+        public SerializationSettings Settings { get; private set; }
 
         #region implemenation of IStreamReader
         public virtual void Read(byte[] data, int offset, int length)
@@ -597,15 +608,15 @@ namespace FastSerialization
         /// Create a new IOStreamStreamReader from the given file.  
         /// </summary>
         /// <param name="fileName"></param>
-        public IOStreamStreamReader(string fileName)
-            : this(new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete)) { }
+        public IOStreamStreamReader(string fileName, SerializationSettings settings = null)
+            : this(new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete), settings: settings) { }
 
         /// <summary>
         /// Create a new IOStreamStreamReader from the given System.IO.Stream.   Optionally you can specify the size of the read buffer
         /// The stream will be closed by the IOStreamStreamReader when it is closed.  
         /// </summary>
-        public IOStreamStreamReader(Stream inputStream, int bufferSize = defaultBufferSize, bool leaveOpen = false)
-            : base(new byte[bufferSize + align], 0, 0)
+        public IOStreamStreamReader(Stream inputStream, int bufferSize = defaultBufferSize, bool leaveOpen = false, SerializationSettings settings = null)
+            : base(new byte[bufferSize + align], 0, 0, settings)
         {
             Debug.Assert(bufferSize % align == 0);
             this.inputStream = inputStream;

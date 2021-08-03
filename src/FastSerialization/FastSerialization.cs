@@ -68,6 +68,33 @@ namespace FastSerialization
     // This is MUCH leaner, and now dominated by actual work of copying the data to the output buffer.
 
     /// <summary>
+    /// Allows users of serialization and de-serialization mechanisms to specify the size of the StreamLabel.
+    /// As traces get larger, there is a need to support larger file sizes, and thus to increase the addressable
+    /// space within the files.  StreamLabel instances are 8-bytes in-memory, but all serialization and de-serialization
+    /// of them results in the upper 4-bytes being lost.  This setting will allow Serializer and Deserializer to read
+    /// and write 8-byte StreamLabel instances.
+    /// </summary>
+#if FASTSERIALIZATION_PUBLIC
+    public
+#endif
+    enum StreamLabelWidth
+    {
+        FourBytes = 0,
+        EightBytes = 1
+    };
+
+    /// <summary>
+    /// These settings apply to use of Serializer and Deserializer specifically.
+    /// </summary>
+#if FASTSERIALIZATION_PUBLIC
+    public
+#endif
+    sealed class SerializationSettings
+    {
+        public StreamLabelWidth StreamLabelWidth { get; set; }
+    }
+
+    /// <summary>
     /// A StreamLabel represents a position in a IStreamReader or IStreamWriter.
     /// In memory it is represented as a 64 bit signed value but to preserve compat 
     /// with the FastSerializer.1 format it is a 32 bit unsigned value when
@@ -997,8 +1024,9 @@ namespace FastSerialization
         /// Create a Deserializer that reads its data from a given System.IO.Stream.   The stream will be closed when the Deserializer is done with it.  
         /// </summary>
         public Deserializer(Stream inputStream, string streamName)
-            : this(new IOStreamStreamReader(inputStream), streamName)
         {
+            IOStreamStreamReader reader = new IOStreamStreamReader(inputStream);
+            Initialize(reader, streamName);
         }
 
         /// <summary>
@@ -1007,14 +1035,20 @@ namespace FastSerialization
         /// closes.
         /// </summary>
         public Deserializer(Stream inputStream, string streamName, bool leaveOpen)
-            : this(new IOStreamStreamReader(inputStream, leaveOpen: leaveOpen), streamName)
         {
+            IOStreamStreamReader reader = new IOStreamStreamReader(inputStream, leaveOpen: leaveOpen);
+            Initialize(reader, streamName);
         }
 
         /// <summary>
         /// Create a Deserializer that reads its data from a given IStreamReader.   The stream will be closed when the Deserializer is done with it.  
         /// </summary>
         public Deserializer(IStreamReader reader, string streamName)
+        {
+            Initialize(reader, streamName);
+        }
+
+        private void Initialize(IStreamReader reader, string streamName)
         {
             ObjectsInGraph = new Dictionary<StreamLabel, IFastSerializable>();
             this.reader = reader;
