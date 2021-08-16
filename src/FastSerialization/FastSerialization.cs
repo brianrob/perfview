@@ -1018,14 +1018,18 @@ namespace FastSerialization
         /// <summary>
         /// Create a Deserializer that reads its data from a given file
         /// </summary>
-        public Deserializer(string filePath) : this(new IOStreamStreamReader(filePath), filePath) { }
+        public Deserializer(string filePath, SerializationSettings settings = null)
+        {
+            IOStreamStreamReader reader = new IOStreamStreamReader(filePath, settings);
+            Initialize(reader, filePath);
+        }
 
         /// <summary>
         /// Create a Deserializer that reads its data from a given System.IO.Stream.   The stream will be closed when the Deserializer is done with it.  
         /// </summary>
-        public Deserializer(Stream inputStream, string streamName)
+        public Deserializer(Stream inputStream, string streamName, SerializationSettings settings = null)
         {
-            IOStreamStreamReader reader = new IOStreamStreamReader(inputStream);
+            IOStreamStreamReader reader = new IOStreamStreamReader(inputStream, settings: settings);
             Initialize(reader, streamName);
         }
 
@@ -1034,9 +1038,9 @@ namespace FastSerialization
         /// <paramref name="leaveOpen"/> parameter determines whether the deserializer will close the stream when it
         /// closes.
         /// </summary>
-        public Deserializer(Stream inputStream, string streamName, bool leaveOpen)
+        public Deserializer(Stream inputStream, string streamName, bool leaveOpen, SerializationSettings settings = null)
         {
-            IOStreamStreamReader reader = new IOStreamStreamReader(inputStream, leaveOpen: leaveOpen);
+            IOStreamStreamReader reader = new IOStreamStreamReader(inputStream, leaveOpen: leaveOpen, settings: settings);
             Initialize(reader, streamName);
         }
 

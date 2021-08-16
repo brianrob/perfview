@@ -54,5 +54,9 @@ namespace TraceEventTests
             writer.Write(val.Length);
             writer.Write(Encoding.UTF8.GetBytes(val));
         }
+
+        //
+        // TODO: Build a test that uses Serializer and Deserializer to ensure that 4 and 8 byte StreamLabel reads/writes work properly.
+        //
     }
 }
