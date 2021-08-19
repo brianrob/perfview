@@ -42,7 +42,7 @@ namespace TraceEventTests
             writer.Write(0xf1234567);
 
             ms.Position = 0;
-            Deserializer d = new Deserializer(new PinnedStreamReader(ms), "name");
+            Deserializer d = new Deserializer(new PinnedStreamReader(ms, settings: new SerializationSettings() { StreamLabelWidth = StreamLabelWidth.FourBytes }), "name");
             Assert.Equal((StreamLabel)0, d.ReadLabel());
             Assert.Equal((StreamLabel)19, d.ReadLabel());
             Assert.Equal((StreamLabel)1_000_000, d.ReadLabel());
@@ -55,8 +55,63 @@ namespace TraceEventTests
             writer.Write(Encoding.UTF8.GetBytes(val));
         }
 
-        //
-        // TODO: Build a test that uses Serializer and Deserializer to ensure that 4 and 8 byte StreamLabel reads/writes work properly.
-        //
+        [Fact]
+        public void WriteAndParseFourByteStreamLabel()
+        {
+            SampleSerializableType sample = new SampleSerializableType(SampleSerializableType.ConstantValue);
+            MemoryStream ms = new MemoryStream();
+            Serializer s = new Serializer(new IOStreamStreamWriter(ms, leaveOpen:true, settings: new SerializationSettings() { StreamLabelWidth = StreamLabelWidth.FourBytes }), sample);
+            s.Dispose();
+
+            Deserializer d = new Deserializer(new PinnedStreamReader(ms, settings: new SerializationSettings() { StreamLabelWidth = StreamLabelWidth.FourBytes }), "name");
+            d.RegisterFactory(typeof(SampleSerializableType), () => new SampleSerializableType(0));
+            SampleSerializableType serializable = (SampleSerializableType)d.ReadObject();
+            Assert.Equal(SampleSerializableType.ConstantValue, serializable.BeforeValue);
+            Assert.Equal(SampleSerializableType.ConstantValue, serializable.AfterValue);
+        }
+
+        [Fact]
+        public void WriteAndParseEightByteStreamLabel()
+        {
+            SampleSerializableType sample = new SampleSerializableType(SampleSerializableType.ConstantValue);
+            MemoryStream ms = new MemoryStream();
+            Serializer s = new Serializer(new IOStreamStreamWriter(ms, leaveOpen: true, settings: new SerializationSettings() { StreamLabelWidth = StreamLabelWidth.EightBytes }), sample);
+            s.Dispose();
+
+            Deserializer d = new Deserializer(new PinnedStreamReader(ms, settings: new SerializationSettings() { StreamLabelWidth = StreamLabelWidth.EightBytes }), "name");
+            d.RegisterFactory(typeof(SampleSerializableType), () => new SampleSerializableType(0));
+            SampleSerializableType serializable = (SampleSerializableType)d.ReadObject();
+            Assert.Equal(SampleSerializableType.ConstantValue, serializable.BeforeValue);
+            Assert.Equal(SampleSerializableType.ConstantValue, serializable.AfterValue);
+        }
+    }
+
+    public sealed class SampleSerializableType : IFastSerializable
+    {
+        public const int ConstantValue = 42;
+
+        public SampleSerializableType(int value)
+        {
+            BeforeValue = value;
+            AfterValue = value;
+        }
+
+        public int BeforeValue { get; set; }
+        public int AfterValue { get; set; }
+
+        void IFastSerializable.ToStream(Serializer serializer)
+        {
+            serializer.Write(BeforeValue);
+            serializer.Writer.Write((StreamLabel)0xDEADBEEF);
+            serializer.Write(AfterValue);
+        }
+
+        void IFastSerializable.FromStream(Deserializer deserializer)
+        {
+            BeforeValue = deserializer.ReadInt();
+            StreamLabel label = deserializer.Reader.ReadLabel();
+            Assert.Equal(0xDEADBEEF, (ulong)label);
+            AfterValue = deserializer.ReadInt();
+        }
     }
 }

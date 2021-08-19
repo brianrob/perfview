@@ -247,10 +247,35 @@ namespace FastSerialization
         /// 
         /// Call 'GetBytes' call to get the raw array.  Only the first 'Length' bytes are valid
         /// </summary>
-        public MemoryStreamWriter(int initialSize = 64)
+        public MemoryStreamWriter(int initialSize = 64, SerializationSettings settings = null)
         {
             bytes = new byte[initialSize];
+
+            Settings = settings;
+            if (Settings == null)
+            {
+                Settings = new SerializationSettings();
+            }
+
+            if (Settings.StreamLabelWidth == StreamLabelWidth.FourBytes)
+            {
+                writeLabelAction = (value) =>
+                {
+                    Debug.Assert((long)value <= int.MaxValue);
+                    Write((int)value);
+                };
+            }
+            else
+            {
+                writeLabelAction = (value) =>
+                {
+                    Debug.Assert((long)value <= long.MaxValue);
+                    Write((long)value);
+                };
+            }
         }
+
+        public SerializationSettings Settings { get; set; }
 
         /// <summary>
         /// Returns a IStreamReader that will read the written bytes. You cannot write additional bytes to the stream after making this call.
@@ -352,8 +377,7 @@ namespace FastSerialization
         /// </summary>
         public void Write(StreamLabel value)
         {
-            Debug.Assert((long)value <= int.MaxValue);
-            Write((int)value);
+            writeLabelAction(value);
         }
         /// <summary>
         /// Implementation of IStreamWriter
@@ -449,6 +473,7 @@ namespace FastSerialization
             Array.Copy(bytes, newBytes, bytes.Length);
             bytes = newBytes;
         }
+        private Action<StreamLabel> writeLabelAction;
         internal /* protected */ byte[] bytes;
         internal /* protected */ int endPosition;
         #endregion
@@ -1041,13 +1066,13 @@ namespace FastSerialization
         /// Create a IOStreamStreamWriter that writes its data to a given file that it creates
         /// </summary>
         /// <param name="fileName"></param>
-        public IOStreamStreamWriter(string fileName) : this(new FileStream(fileName, FileMode.Create)) { }
+        public IOStreamStreamWriter(string fileName, SerializationSettings settings = null) : this(new FileStream(fileName, FileMode.Create), settings: settings) { }
 
         /// <summary>
         /// Create a IOStreamStreamWriter that writes its data to a System.IO.Stream
         /// </summary>
-        public IOStreamStreamWriter(Stream outputStream, int bufferSize = defaultBufferSize + sizeof(long), bool leaveOpen = false)
-            : base(bufferSize)
+        public IOStreamStreamWriter(Stream outputStream, int bufferSize = defaultBufferSize + sizeof(long), bool leaveOpen = false, SerializationSettings settings = null)
+            : base(bufferSize, settings)
         {
             this.outputStream = outputStream;
             this.leaveOpen = leaveOpen;
@@ -1096,7 +1121,7 @@ namespace FastSerialization
         public override StreamLabel GetLabel()
         {
             long len = Length;
-            if (len != (uint)len)
+            if (Settings.StreamLabelWidth == StreamLabelWidth.FourBytes && len != (uint)len)
             {
                 throw new NotSupportedException("Streams larger than 4 GB.  You need to use /MaxEventCount to limit the size.");
             }
