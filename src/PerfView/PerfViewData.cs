@@ -7500,7 +7500,8 @@ table {
             traceEventDispatcherOptions.StartTime = App.CommandLineArgs.StartTime;
             traceEventDispatcherOptions.EndTime = App.CommandLineArgs.EndTime;
 
-            options.MaxEventCount = App.CommandLineArgs.MaxEventCount;
+            // Default to 20M if SafeMode is set.  This is because we'll also force TraceLog to have a 32-bit StreamLabel for compatibility.
+            options.MaxEventCount = (App.CommandLineArgs.SafeMode && App.CommandLineArgs.MaxEventCount == 0) ? 20000000 : App.CommandLineArgs.MaxEventCount;
             options.ContinueOnError = App.CommandLineArgs.ContinueOnError;
             options.SkipMSec = App.CommandLineArgs.SkipMSec;
             options.OnLostEvents = onLostEvents;

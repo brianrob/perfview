@@ -1845,7 +1845,8 @@ namespace Microsoft.Diagnostics.Tracing.Etlx
                 }
             };
 
-            const int defaultMaxEventCount = 20000000;                   // 20M events produces about 3GB of data.  which is close to the limit of ETLX.
+            // TODO: Reset this back to 20M from 2B
+            const int defaultMaxEventCount = 2000000000;                   // 20M events produces about 3GB of data.  which is close to the limit of ETLX.
             int maxEventCount = defaultMaxEventCount;
             double startMSec = 0;
             if (options != null)
@@ -1886,12 +1887,14 @@ namespace Microsoft.Diagnostics.Tracing.Etlx
                 // Show status every 128K events
                 if ((rawEventCount & 0x1FFFF) == 0)
                 {
-                    var curOutputSizeMB = ((double)(uint)writer.GetLabel()) / 1000000.0;
+                    var curOutputSizeMB = ((double)(ulong)writer.GetLabel()) / 1000000.0;
+
+                    // TODO
                     // Currently ETLX has a size restriction of 4Gig.  Thus if we are getting big, start truncating.
-                    if (curOutputSizeMB > 3500)
-                    {
-                        processingDisabled = true;
-                    }
+                    //if (curOutputSizeMB > 3500)
+                    //{
+                    //    processingDisabled = true;
+                    //}
 
                     if (options != null && options.ConversionLog != null)
                     {
@@ -1918,10 +1921,12 @@ namespace Microsoft.Diagnostics.Tracing.Etlx
                             {
                                 message = "  Hit MaxEventCount, truncating.";
                             }
-                            else if (curOutputSizeMB > 3500)
-                            {
-                                message = "  Hit File size limit (3.5Gig) truncating.";
-                            }
+
+                            // TODO
+                            //else if (curOutputSizeMB > 3500)
+                            //{
+                            //    message = "  Hit File size limit (3.5Gig) truncating.";
+                            //}
 
                             options.ConversionLog.WriteLine(
                                 "[Sec {0,4:f0} Read {1,10:n0} events. At {2,7:n0}ms.  Wrote {3,4:f0}MB ({4,3:f0}%).  EstDone {5,2:f0} min {6,2:f0} sec.{7}]",

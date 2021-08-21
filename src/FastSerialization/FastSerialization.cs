@@ -79,8 +79,9 @@ namespace FastSerialization
 #endif
     enum StreamLabelWidth
     {
-        FourBytes = 0,
-        EightBytes = 1
+        // TODO: Switch back.
+        FourBytes = 1,
+        EightBytes = 0
     };
 
     /// <summary>
