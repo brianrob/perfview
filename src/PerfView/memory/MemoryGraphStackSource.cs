@@ -228,12 +228,12 @@ namespace Graphs
 
             // We keep track of node depth so that we can limit it.   
             int[] nodeDepth = new int[m_parent.Length];
-            float[] nodePriorities = new float[m_parent.Length];
+            double[] nodePriorities = new double[m_parent.Length];
             MemoryGraph asMemoryGraph = m_graph as MemoryGraph;
 
             bool scanedForOrphans = false;
             var epsilon = 1E-7F;            // Something that is big enough not to bet lost in roundoff error.  
-            float order = 0;
+            double order = 0;
             for (int i = 0; ; i++)
             {
                 if ((i & 0x1FFF) == 0)  // Every 8K
@@ -242,7 +242,7 @@ namespace Graphs
                 }
 
                 NodeIndex nodeIndex;
-                float nodePriority;
+                double nodePriority;
                 if (nodesToVisit.Count == 0)
                 {
                     nodePriority = 0;

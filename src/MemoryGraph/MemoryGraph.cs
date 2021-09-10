@@ -10,7 +10,7 @@ namespace Graphs
         public MemoryGraph(int expectedSize)
             : base(expectedSize)
         {
-            m_addressToNodeIndex = new Dictionary<Address, NodeIndex>(expectedSize);
+            m_addressToNodeIndex = new LargeDictionary<Address, NodeIndex>(expectedSize);
             m_nodeAddresses = new SegmentedList<Address>(SegmentSize, expectedSize);
         }
 
@@ -111,7 +111,7 @@ namespace Graphs
         /// THis table maps the ID that CLRProfiler uses (an address), to the NodeIndex we have assigned to it.  
         /// It is only needed while the file is being read in.  
         /// </summary>
-        protected Dictionary<Address, NodeIndex> m_addressToNodeIndex;    // This field is only used during construction
+        protected LargeDictionary<Address, NodeIndex> m_addressToNodeIndex;    // This field is only used during construction
 
         #endregion
         #region private
@@ -132,7 +132,7 @@ namespace Graphs
         {
             base.FromStream(deserializer);
             // Read in the Memory addresses of each object 
-            int addressCount = deserializer.ReadInt();
+            long addressCount = deserializer.ReadInt64();
             m_nodeAddresses = new SegmentedList<Address>(SegmentSize, addressCount);
 
             for (int i = 0; i < addressCount; i++)

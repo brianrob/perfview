@@ -122,7 +122,7 @@ namespace Graphs
         /// <summary>
         /// Same as NodeIndexLimit, just cast to an integer.  
         /// </summary>
-        public int NodeCount { get { return m_nodes.Count; } }
+        public long NodeCount { get { return m_nodes.Count; } }
         /// <summary>
         /// It is expected that users will want additional information associated with TYPES of the nodes of the graph.  They can
         /// do this by allocating an array of code:NodeTypeIndexLimit and then indexing this by code:NodeTypeIndex
@@ -548,7 +548,7 @@ namespace Graphs
 
                     // You can place tagged values in here always adding right before the WriteTaggedEnd
                     // for any new fields added after version 1 
-                    serializer.WriteTaggedEnd(); // This ensures tagged things don't read junk after the region.  
+                    serializer.WriteTaggedEnd(); // This insures tagged things don't read junk after the region.  
                 });
             }
         }
@@ -571,7 +571,7 @@ namespace Graphs
             }
 
             // Read in the Nodes 
-            int nodeCount = deserializer.ReadInt();
+            long nodeCount = deserializer.ReadInt64();
             m_nodes = new SegmentedList<StreamLabel>(SegmentSize, nodeCount);
 
             for (int i = 0; i < nodeCount; i++)
@@ -641,7 +641,7 @@ namespace Graphs
             }
         }
 
-        private int m_expectedNodeCount;                // Initial guess at graph Size. 
+        private long m_expectedNodeCount;                // Initial guess at graph Size. 
         private long m_totalSize;                       // Total Size of all the nodes in the graph.  
         internal int m_totalRefs;                       // Total Number of references in the graph
         internal GrowableArray<TypeInfo> m_types;       // We expect only thousands of these
@@ -1721,11 +1721,11 @@ public class SpanningTree
             m_parent[i] = NodeIndex.Invalid;
         }
 
-        float[] nodePriorities = new float[m_parent.Length];
+        SegmentedList<double> nodePriorities = new SegmentedList<double>(8_192, m_parent.Length);
         bool scanedForOrphans = false;
         var epsilon = 1E-7F;            // Something that is big enough not to bet lost in roundoff error.  
         float order = 0;
-        for (int i = 0; ; i++)
+        for (long i = 0; ; i++)
         {
             if ((i & 0x1FFF) == 0)  // Every 8K
             {
@@ -1733,7 +1733,7 @@ public class SpanningTree
             }
 
             NodeIndex nodeIndex;
-            float nodePriority;
+            double nodePriority;
             if (nodesToVisit.Count == 0)
             {
                 nodePriority = 0;
@@ -1751,17 +1751,17 @@ public class SpanningTree
 
             // Insert any children that have not already been visited (had a parent assigned) into the work queue). 
             var node = m_graph.GetNode(nodeIndex, m_nodeStorage);
-            var parentPriority = nodePriorities[(int)node.Index];
+            var parentPriority = nodePriorities[(long)node.Index];
             for (var childIndex = node.GetFirstChildIndex(); childIndex != NodeIndex.Invalid; childIndex = node.GetNextChildIndex())
             {
-                if (m_parent[(int)childIndex] == NodeIndex.Invalid)
+                if (m_parent[(long)childIndex] == NodeIndex.Invalid)
                 {
-                    m_parent[(int)childIndex] = nodeIndex;
+                    m_parent[(long)childIndex] = nodeIndex;
 
                     // the priority of the child is determined by its type and 1/10 by its parent.  
                     var child = m_graph.GetNode(childIndex, m_childStorage);
                     var childPriority = m_typePriorities[(int)child.TypeIndex] + parentPriority / 10;
-                    nodePriorities[(int)childIndex] = childPriority;
+                    nodePriorities[(long)childIndex] = childPriority;
 
                     // Subtract a small increasing value to keep the queue in order if the priorities are the same. 
                     // This is a bit of a hack since it can get big and purtub the user-defined order.  
@@ -1993,7 +1993,7 @@ internal class PriorityQueue
         m_heap = new DataItem[initialSize];
     }
     public int Count { get { return m_count; } }
-    public void Enqueue(NodeIndex item, float priority)
+    public void Enqueue(NodeIndex item, double priority)
     {
         var idx = m_count;
         if (idx >= m_heap.Length)
@@ -2027,7 +2027,7 @@ internal class PriorityQueue
         }
         // CheckInvariant();
     }
-    public NodeIndex Dequeue(out float priority)
+    public NodeIndex Dequeue(out double priority)
     {
         Debug.Assert(Count > 0);
 
@@ -2091,8 +2091,8 @@ internal class PriorityQueue
 
     private struct DataItem
     {
-        public DataItem(NodeIndex value, float priority) { this.value = value; this.priority = priority; }
-        public float priority;
+        public DataItem(NodeIndex value, double priority) { this.value = value; this.priority = priority; }
+        public double priority;
         public NodeIndex value;
     }
     [Conditional("DEBUG")]
@@ -2387,7 +2387,7 @@ public class GraphSampler
             stats.TotalMetric += node.Size;
         }
 
-        // Also ensure that if there are a large number of types, that we sample them at least some. 
+        // Also insure that if there are a large number of types, that we sample them at least some. 
         if (stats.SampleCount == 0 && !mustAdd && (m_numDistictTypesWithSamples + .5F) * m_filteringRatio <= m_numDistictTypes)
         {
             mustAdd = true;

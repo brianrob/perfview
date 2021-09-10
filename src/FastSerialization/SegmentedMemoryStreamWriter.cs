@@ -9,7 +9,7 @@ namespace FastSerialization
     public class SegmentedMemoryStreamWriter
     {
         public SegmentedMemoryStreamWriter() : this(64) { }
-        public SegmentedMemoryStreamWriter(int initialSize)
+        public SegmentedMemoryStreamWriter(long initialSize)
         {
             bytes = new SegmentedList<byte>(65_536, initialSize);
         }
