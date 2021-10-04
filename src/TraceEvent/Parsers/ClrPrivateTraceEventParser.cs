@@ -49,6 +49,7 @@ namespace Microsoft.Diagnostics.Tracing.Parsers
             Stack = 0x40000000,
             Startup = 0x80000000,
             PerfTrack = 0x20000000,
+            Virtualstubdispatch = 0x100000000,
         };
 
         public ClrPrivateTraceEventParser(TraceEventSource source) : base(source) { }
@@ -1784,6 +1785,40 @@ namespace Microsoft.Diagnostics.Tracing.Parsers
             }
         }
 
+        public event Action<VSDGenerateStubTraceData> VirtualStubDispatchGenerateStubStart
+        {
+            add
+            {
+                RegisterTemplate(new VSDGenerateStubTraceData(value, 415, 24, "VirtualStubDispatchGenerateStub", VirtualStubDispatchGenerateStubTaskGuid, 1, "Start", ProviderGuid, ProviderName));
+            }
+            remove
+            {
+                source.UnregisterEventTemplate(value, 415, VirtualStubDispatchGenerateStubTaskGuid);
+            }
+        }
+        public event Action<VSDGenerateStubTraceData> VirtualStubDispatchGenerateStubStop
+        {
+            add
+            {
+                RegisterTemplate(new VSDGenerateStubTraceData(value, 416, 24, "VirtualStubDispatchGenerateStub", VirtualStubDispatchGenerateStubTaskGuid, 2, "Stop", ProviderGuid, ProviderName));
+            }
+            remove
+            {
+                source.UnregisterEventTemplate(value, 416, VirtualStubDispatchGenerateStubTaskGuid);
+            }
+        }
+        public event Action<VSDResolveWorkerTraceData> VirtualStubDispatchResolveWorker
+        {
+            add
+            {
+                RegisterTemplate(new VSDResolveWorkerTraceData(value, 414, 23, "VirtualStubDispatchResolveWorker", VirtualStubDispatchResolveWorkerTaskGuid, 0, "", ProviderGuid, ProviderName));
+            }
+            remove
+            {
+                source.UnregisterEventTemplate(value, 414, VirtualStubDispatchResolveWorkerTaskGuid);
+            }
+        }
+
         #region Event ID Definitions
         private const TraceEventID GCDecisionEventID = (TraceEventID)1;
         private const TraceEventID GCSettingsEventID = (TraceEventID)2;
@@ -1902,7 +1937,7 @@ namespace Microsoft.Diagnostics.Tracing.Parsers
         {
             if (s_templates == null)
             {
-                var templates = new TraceEvent[133];
+                var templates = new TraceEvent[136];
                 templates[0] = new GCDecisionTraceData(null, 1, 1, "GC", GCTaskGuid, 132, "Decision", ProviderGuid, ProviderName);
                 templates[1] = new GCSettingsTraceData(null, 2, 1, "GC", GCTaskGuid, 14, "Settings", ProviderGuid, ProviderName);
                 templates[2] = new GCOptimizedTraceData(null, 3, 1, "GC", GCTaskGuid, 16, "Optimized", ProviderGuid, ProviderName);
@@ -2036,6 +2071,9 @@ namespace Microsoft.Diagnostics.Tracing.Parsers
                 templates[130] = new DynamicTypeUseNoParametersPrivateTraceData(null, 412, 22, "ClrDynamicTypeUsage", ClrDynamicTypeUsageTaskGuid, 23, "EndCreateManagedReference", ProviderGuid, ProviderName);
                 templates[131] = new DynamicTypeUseStringAndIntPrivateTraceData(null, 413, 22, "ClrDynamicTypeUsage", ClrDynamicTypeUsageTaskGuid, 24, "ObjectVariantMarshallingToManaged", ProviderGuid, ProviderName);
                 templates[132] = new CCWRefCountChangeTraceData(null, 200, 1, "GC", GCTaskGuid, 40, "CCWRefCountChange", ProviderGuid, ProviderName);
+                templates[133] = new VSDResolveWorkerTraceData(null, 414, 23, "VirtualStubDispatchResolveWorker", VirtualStubDispatchResolveWorkerTaskGuid, 0, "", ProviderGuid, ProviderName);
+                templates[134] = new VSDGenerateStubTraceData(null, 415, 24, "VirtualStubDispatchGenerateStub", VirtualStubDispatchGenerateStubTaskGuid, 1, "Start", ProviderGuid, ProviderName);
+                templates[135] = new VSDGenerateStubTraceData(null, 416, 24, "VirtualStubDispatchGenerateStub", VirtualStubDispatchGenerateStubTaskGuid, 2, "Stop", ProviderGuid, ProviderName);
 
                 s_templates = templates;
             }
@@ -2058,6 +2096,8 @@ namespace Microsoft.Diagnostics.Tracing.Parsers
         private static readonly Guid ClrPerfTrackTaskGuid = new Guid(unchecked((int)0xeac685f6), unchecked((short)0x2104), unchecked((short)0x4dec), 0x88, 0xfd, 0x91, 0xe4, 0x25, 0x42, 0x21, 0xec);
         private static readonly Guid ThreadPoolTaskGuid = new Guid(unchecked((int)0xead685f6), unchecked((short)0x2104), unchecked((short)0x4dec), 0x88, 0xfd, 0x91, 0xe4, 0x25, 0x42, 0x21, 0xe9);
         private static readonly Guid ClrDynamicTypeUsageTaskGuid = new Guid(unchecked((int)0x4f67e18d), unchecked((short)0xeedd), unchecked((short)0x4056), 0xb8, 0xce, 0xdd, 0x82, 0x2f, 0xe5, 0x45, 0x53);
+        private static readonly Guid VirtualStubDispatchResolveWorkerTaskGuid = new Guid("2925B563-CC66-4D3A-A508-B28442FB1DAC");
+        private static readonly Guid VirtualStubDispatchGenerateStubTaskGuid = new Guid("3B04313E-D67E-435F-92B9-EB6B0FEE8195");
 
         // TODO remove if project N's Guids are harmonized with the desktop 
         private void RegisterTemplate(TraceEvent template)
@@ -4765,6 +4805,144 @@ namespace Microsoft.Diagnostics.Tracing.Parsers.ClrPrivate
         private event Action<DynamicTypeUseNoParametersPrivateTraceData> Action;
         #endregion
     }
+
+    public sealed class VSDGenerateStubTraceData : TraceEvent
+    {
+        public int ClrInstanceID { get { return GetInt16At(0); } }
+        public string TypeName { get { return GetUnicodeStringAt(2); } }
+        public long Token { get { return GetInt64At(SkipUnicodeString(2)); } }
+
+        #region Private
+        internal VSDGenerateStubTraceData(Action<VSDGenerateStubTraceData> action, int eventID, int task, string taskName, Guid taskGuid, int opcode, string opcodeName, Guid providerGuid, string providerName)
+            : base(eventID, task, taskName, taskGuid, opcode, opcodeName, providerGuid, providerName)
+        {
+            Action = action;
+        }
+        protected internal override void Dispatch()
+        {
+            Action(this);
+        }
+        protected internal override void Validate()
+        {
+            Debug.Assert(!(Version == 0 && EventDataLength != SkipUnicodeString(2) + 8));
+            Debug.Assert(!(Version > 0 && EventDataLength < SkipUnicodeString(2) + 8));
+        }
+        protected internal override Delegate Target
+        {
+            get { return Action; }
+            set { Action = (Action<VSDGenerateStubTraceData>)value; }
+        }
+        public override StringBuilder ToXml(StringBuilder sb)
+        {
+            Prefix(sb);
+            XmlAttrib(sb, "ClrInstanceID", ClrInstanceID);
+            XmlAttrib(sb, "TypeName", TypeName);
+            XmlAttrib(sb, "Token", Token);
+            sb.Append("/>");
+            return sb;
+        }
+
+        public override string[] PayloadNames
+        {
+            get
+            {
+                if (payloadNames == null)
+                    payloadNames = new string[] { "ClrInstanceID", "TypeName", "Token" };
+                return payloadNames;
+            }
+        }
+
+        public override object PayloadValue(int index)
+        {
+            switch (index)
+            {
+                case 0:
+                    return ClrInstanceID;
+                case 1:
+                    return TypeName;
+                case 2:
+                    return Token;
+                default:
+                    Debug.Assert(false, "Bad field index");
+                    return null;
+            }
+        }
+
+        public static ulong GetKeywords() { return 4294967296; }
+        public static string GetProviderName() { return "Microsoft-Windows-DotNETRuntimePrivate"; }
+        public static Guid GetProviderGuid() { return new Guid("763fd754-7086-4dfe-95eb-c01a46faf4ca"); }
+        private event Action<VSDGenerateStubTraceData> Action;
+        #endregion
+    }
+    public sealed class VSDResolveWorkerTraceData : TraceEvent
+    {
+        public int ClrInstanceID { get { return GetInt16At(0); } }
+        public string TypeName { get { return GetUnicodeStringAt(2); } }
+        public long Token { get { return GetInt64At(SkipUnicodeString(2)); } }
+
+        #region Private
+        internal VSDResolveWorkerTraceData(Action<VSDResolveWorkerTraceData> action, int eventID, int task, string taskName, Guid taskGuid, int opcode, string opcodeName, Guid providerGuid, string providerName)
+            : base(eventID, task, taskName, taskGuid, opcode, opcodeName, providerGuid, providerName)
+        {
+            Action = action;
+        }
+        protected internal override void Dispatch()
+        {
+            Action(this);
+        }
+        protected internal override void Validate()
+        {
+            Debug.Assert(!(Version == 0 && EventDataLength != SkipUnicodeString(2) + 8));
+            Debug.Assert(!(Version > 0 && EventDataLength < SkipUnicodeString(2) + 8));
+        }
+        protected internal override Delegate Target
+        {
+            get { return Action; }
+            set { Action = (Action<VSDResolveWorkerTraceData>)value; }
+        }
+        public override StringBuilder ToXml(StringBuilder sb)
+        {
+            Prefix(sb);
+            XmlAttrib(sb, "ClrInstanceID", ClrInstanceID);
+            XmlAttrib(sb, "TypeName", TypeName);
+            XmlAttrib(sb, "Token", Token);
+            sb.Append("/>");
+            return sb;
+        }
+
+        public override string[] PayloadNames
+        {
+            get
+            {
+                if (payloadNames == null)
+                    payloadNames = new string[] { "ClrInstanceID", "TypeName", "Token" };
+                return payloadNames;
+            }
+        }
+
+        public override object PayloadValue(int index)
+        {
+            switch (index)
+            {
+                case 0:
+                    return ClrInstanceID;
+                case 1:
+                    return TypeName;
+                case 2:
+                    return Token;
+                default:
+                    Debug.Assert(false, "Bad field index");
+                    return null;
+            }
+        }
+
+        public static ulong GetKeywords() { return 4294967296; }
+        public static string GetProviderName() { return "Microsoft-Windows-DotNETRuntimePrivate"; }
+        public static Guid GetProviderGuid() { return new Guid("763fd754-7086-4dfe-95eb-c01a46faf4ca"); }
+        private event Action<VSDResolveWorkerTraceData> Action;
+        #endregion
+    }
+
     [Flags]
     public enum ModuleRangeIBCType
     {
