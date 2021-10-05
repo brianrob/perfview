@@ -1818,6 +1818,28 @@ namespace Microsoft.Diagnostics.Tracing.Parsers
                 source.UnregisterEventTemplate(value, 414, VirtualStubDispatchResolveWorkerTaskGuid);
             }
         }
+        public event Action<VSDGenerateStubTraceData> VirtualStubDispatchLookupResolveStubStart
+        {
+            add
+            {
+                RegisterTemplate(new VSDGenerateStubTraceData(value, 417, 25, "VirtualStubDispatchLookupResolveStub", VirtualStubDispatchLookupResolveStubTaskGuid, 0, "", ProviderGuid, ProviderName));
+            }
+            remove
+            {
+                source.UnregisterEventTemplate(value, 417, VirtualStubDispatchLookupResolveStubTaskGuid);
+            }
+        }
+        public event Action<VSDGenerateStubTraceData> VirtualStubDispatchLookupResolveStubStop
+        {
+            add
+            {
+                RegisterTemplate(new VSDGenerateStubTraceData(value, 418, 25, "VirtualStubDispatchLookupResolveStub", VirtualStubDispatchLookupResolveStubTaskGuid, 0, "", ProviderGuid, ProviderName));
+            }
+            remove
+            {
+                source.UnregisterEventTemplate(value, 418, VirtualStubDispatchLookupResolveStubTaskGuid);
+            }
+        }
 
         #region Event ID Definitions
         private const TraceEventID GCDecisionEventID = (TraceEventID)1;
@@ -1937,7 +1959,7 @@ namespace Microsoft.Diagnostics.Tracing.Parsers
         {
             if (s_templates == null)
             {
-                var templates = new TraceEvent[136];
+                var templates = new TraceEvent[138];
                 templates[0] = new GCDecisionTraceData(null, 1, 1, "GC", GCTaskGuid, 132, "Decision", ProviderGuid, ProviderName);
                 templates[1] = new GCSettingsTraceData(null, 2, 1, "GC", GCTaskGuid, 14, "Settings", ProviderGuid, ProviderName);
                 templates[2] = new GCOptimizedTraceData(null, 3, 1, "GC", GCTaskGuid, 16, "Optimized", ProviderGuid, ProviderName);
@@ -2074,6 +2096,8 @@ namespace Microsoft.Diagnostics.Tracing.Parsers
                 templates[133] = new VSDResolveWorkerTraceData(null, 414, 23, "VirtualStubDispatchResolveWorker", VirtualStubDispatchResolveWorkerTaskGuid, 0, "", ProviderGuid, ProviderName);
                 templates[134] = new VSDGenerateStubTraceData(null, 415, 24, "VirtualStubDispatchGenerateStub", VirtualStubDispatchGenerateStubTaskGuid, 1, "Start", ProviderGuid, ProviderName);
                 templates[135] = new VSDGenerateStubTraceData(null, 416, 24, "VirtualStubDispatchGenerateStub", VirtualStubDispatchGenerateStubTaskGuid, 2, "Stop", ProviderGuid, ProviderName);
+                templates[136] = new VSDGenerateStubTraceData(null, 417, 25, "VirtualStubDispatchLookupResolveStub", VirtualStubDispatchLookupResolveStubTaskGuid, 0, "", ProviderGuid, ProviderName);
+                templates[137] = new VSDGenerateStubTraceData(null, 418, 25, "VirtualStubDispatchLookupResolveStub", VirtualStubDispatchLookupResolveStubTaskGuid, 0, "", ProviderGuid, ProviderName);
 
                 s_templates = templates;
             }
@@ -2098,6 +2122,7 @@ namespace Microsoft.Diagnostics.Tracing.Parsers
         private static readonly Guid ClrDynamicTypeUsageTaskGuid = new Guid(unchecked((int)0x4f67e18d), unchecked((short)0xeedd), unchecked((short)0x4056), 0xb8, 0xce, 0xdd, 0x82, 0x2f, 0xe5, 0x45, 0x53);
         private static readonly Guid VirtualStubDispatchResolveWorkerTaskGuid = new Guid("2925B563-CC66-4D3A-A508-B28442FB1DAC");
         private static readonly Guid VirtualStubDispatchGenerateStubTaskGuid = new Guid("3B04313E-D67E-435F-92B9-EB6B0FEE8195");
+        private static readonly Guid VirtualStubDispatchLookupResolveStubTaskGuid = new Guid(unchecked((int)0xf7263ab8), unchecked((short)0xddc3), unchecked((short)0x4cbf), 0x9a, 0xcc, 0xc8, 0xff, 0xbd, 0xd4, 0xcf, 0xfc);
 
         // TODO remove if project N's Guids are harmonized with the desktop 
         private void RegisterTemplate(TraceEvent template)
