@@ -1822,7 +1822,7 @@ namespace Microsoft.Diagnostics.Tracing.Parsers
         {
             add
             {
-                RegisterTemplate(new VSDGenerateStubTraceData(value, 417, 25, "VirtualStubDispatchLookupResolveStub", VirtualStubDispatchLookupResolveStubTaskGuid, 0, "", ProviderGuid, ProviderName));
+                RegisterTemplate(new VSDGenerateStubTraceData(value, 417, 25, "VirtualStubDispatchLookupResolveStub", VirtualStubDispatchLookupResolveStubTaskGuid, 1, "Start", ProviderGuid, ProviderName));
             }
             remove
             {
@@ -1833,11 +1833,33 @@ namespace Microsoft.Diagnostics.Tracing.Parsers
         {
             add
             {
-                RegisterTemplate(new VSDGenerateStubTraceData(value, 418, 25, "VirtualStubDispatchLookupResolveStub", VirtualStubDispatchLookupResolveStubTaskGuid, 0, "", ProviderGuid, ProviderName));
+                RegisterTemplate(new VSDGenerateStubTraceData(value, 418, 25, "VirtualStubDispatchLookupResolveStub", VirtualStubDispatchLookupResolveStubTaskGuid, 2, "Stop", ProviderGuid, ProviderName));
             }
             remove
             {
                 source.UnregisterEventTemplate(value, 418, VirtualStubDispatchLookupResolveStubTaskGuid);
+            }
+        }
+        public event Action<VSDBucketTraceData> VirtualStubDispatchLookupResolveStubBucket
+        {
+            add
+            {
+                RegisterTemplate(new VSDBucketTraceData(value, 419, 25, "VirtualStubDispatchLookupResolveStub", VirtualStubDispatchLookupResolveStubTaskGuid, 25, "Bucket", ProviderGuid, ProviderName));
+            }
+            remove
+            {
+                source.UnregisterEventTemplate(value, 419, VirtualStubDispatchLookupResolveStubTaskGuid);
+            }
+        }
+        public event Action<VSDListReadTraceData> VirtualStubDispatchLookupResolveStubListRead
+        {
+            add
+            {
+                RegisterTemplate(new VSDListReadTraceData(value, 420, 25, "VirtualStubDispatchLookupResolveStub", VirtualStubDispatchLookupResolveStubTaskGuid, 26, "ListRead", ProviderGuid, ProviderName));
+            }
+            remove
+            {
+                source.UnregisterEventTemplate(value, 420, VirtualStubDispatchLookupResolveStubTaskGuid);
             }
         }
 
@@ -1959,7 +1981,7 @@ namespace Microsoft.Diagnostics.Tracing.Parsers
         {
             if (s_templates == null)
             {
-                var templates = new TraceEvent[138];
+                var templates = new TraceEvent[140];
                 templates[0] = new GCDecisionTraceData(null, 1, 1, "GC", GCTaskGuid, 132, "Decision", ProviderGuid, ProviderName);
                 templates[1] = new GCSettingsTraceData(null, 2, 1, "GC", GCTaskGuid, 14, "Settings", ProviderGuid, ProviderName);
                 templates[2] = new GCOptimizedTraceData(null, 3, 1, "GC", GCTaskGuid, 16, "Optimized", ProviderGuid, ProviderName);
@@ -2096,8 +2118,10 @@ namespace Microsoft.Diagnostics.Tracing.Parsers
                 templates[133] = new VSDResolveWorkerTraceData(null, 414, 23, "VirtualStubDispatchResolveWorker", VirtualStubDispatchResolveWorkerTaskGuid, 0, "", ProviderGuid, ProviderName);
                 templates[134] = new VSDGenerateStubTraceData(null, 415, 24, "VirtualStubDispatchGenerateStub", VirtualStubDispatchGenerateStubTaskGuid, 1, "Start", ProviderGuid, ProviderName);
                 templates[135] = new VSDGenerateStubTraceData(null, 416, 24, "VirtualStubDispatchGenerateStub", VirtualStubDispatchGenerateStubTaskGuid, 2, "Stop", ProviderGuid, ProviderName);
-                templates[136] = new VSDGenerateStubTraceData(null, 417, 25, "VirtualStubDispatchLookupResolveStub", VirtualStubDispatchLookupResolveStubTaskGuid, 0, "", ProviderGuid, ProviderName);
-                templates[137] = new VSDGenerateStubTraceData(null, 418, 25, "VirtualStubDispatchLookupResolveStub", VirtualStubDispatchLookupResolveStubTaskGuid, 0, "", ProviderGuid, ProviderName);
+                templates[136] = new VSDGenerateStubTraceData(null, 417, 25, "VirtualStubDispatchLookupResolveStub", VirtualStubDispatchLookupResolveStubTaskGuid, 1, "Start", ProviderGuid, ProviderName);
+                templates[137] = new VSDGenerateStubTraceData(null, 418, 25, "VirtualStubDispatchLookupResolveStub", VirtualStubDispatchLookupResolveStubTaskGuid, 2, "Stop", ProviderGuid, ProviderName);
+                templates[138] = new VSDBucketTraceData(null, 419, 25, "VirtualStubDispatchLookupResolveStub", VirtualStubDispatchLookupResolveStubTaskGuid, 25, "Bucket", ProviderGuid, ProviderName);
+                templates[139] = new VSDListReadTraceData(null, 420, 25, "VirtualStubDispatchLookupResolveStub", VirtualStubDispatchLookupResolveStubTaskGuid, 26, "ListRead", ProviderGuid, ProviderName);
 
                 s_templates = templates;
             }
@@ -4897,6 +4921,134 @@ namespace Microsoft.Diagnostics.Tracing.Parsers.ClrPrivate
         public static string GetProviderName() { return "Microsoft-Windows-DotNETRuntimePrivate"; }
         public static Guid GetProviderGuid() { return new Guid("763fd754-7086-4dfe-95eb-c01a46faf4ca"); }
         private event Action<VSDGenerateStubTraceData> Action;
+        #endregion
+    }
+    public sealed class VSDBucketTraceData : TraceEvent
+    {
+        public int ClrInstanceID { get { return GetInt16At(0); } }
+        public long Index { get { return GetInt64At(2); } }
+
+        #region Private
+        internal VSDBucketTraceData(Action<VSDBucketTraceData> action, int eventID, int task, string taskName, Guid taskGuid, int opcode, string opcodeName, Guid providerGuid, string providerName)
+            : base(eventID, task, taskName, taskGuid, opcode, opcodeName, providerGuid, providerName)
+        {
+            Action = action;
+        }
+        protected internal override void Dispatch()
+        {
+            Action(this);
+        }
+        protected internal override void Validate()
+        {
+            Debug.Assert(!(Version == 0 && EventDataLength != 10));
+            Debug.Assert(!(Version > 0 && EventDataLength < 10));
+        }
+        protected internal override Delegate Target
+        {
+            get { return Action; }
+            set { Action = (Action<VSDBucketTraceData>)value; }
+        }
+        public override StringBuilder ToXml(StringBuilder sb)
+        {
+            Prefix(sb);
+            XmlAttrib(sb, "ClrInstanceID", ClrInstanceID);
+            XmlAttrib(sb, "Index", Index);
+            sb.Append("/>");
+            return sb;
+        }
+
+        public override string[] PayloadNames
+        {
+            get
+            {
+                if (payloadNames == null)
+                    payloadNames = new string[] { "ClrInstanceID", "Index" };
+                return payloadNames;
+            }
+        }
+
+        public override object PayloadValue(int index)
+        {
+            switch (index)
+            {
+                case 0:
+                    return ClrInstanceID;
+                case 1:
+                    return Index;
+                default:
+                    Debug.Assert(false, "Bad field index");
+                    return null;
+            }
+        }
+
+        public static ulong GetKeywords() { return 4294967296; }
+        public static string GetProviderName() { return "Microsoft-Windows-DotNETRuntimePrivate"; }
+        public static Guid GetProviderGuid() { return new Guid("763fd754-7086-4dfe-95eb-c01a46faf4ca"); }
+        private event Action<VSDBucketTraceData> Action;
+        #endregion
+    }
+    public sealed class VSDListReadTraceData : TraceEvent
+    {
+        public int ClrInstanceID { get { return GetInt16At(0); } }
+        public long ReadCount { get { return GetInt64At(2); } }
+
+        #region Private
+        internal VSDListReadTraceData(Action<VSDListReadTraceData> action, int eventID, int task, string taskName, Guid taskGuid, int opcode, string opcodeName, Guid providerGuid, string providerName)
+            : base(eventID, task, taskName, taskGuid, opcode, opcodeName, providerGuid, providerName)
+        {
+            Action = action;
+        }
+        protected internal override void Dispatch()
+        {
+            Action(this);
+        }
+        protected internal override void Validate()
+        {
+            Debug.Assert(!(Version == 0 && EventDataLength != 10));
+            Debug.Assert(!(Version > 0 && EventDataLength < 10));
+        }
+        protected internal override Delegate Target
+        {
+            get { return Action; }
+            set { Action = (Action<VSDListReadTraceData>)value; }
+        }
+        public override StringBuilder ToXml(StringBuilder sb)
+        {
+            Prefix(sb);
+            XmlAttrib(sb, "ClrInstanceID", ClrInstanceID);
+            XmlAttrib(sb, "ReadCount", ReadCount);
+            sb.Append("/>");
+            return sb;
+        }
+
+        public override string[] PayloadNames
+        {
+            get
+            {
+                if (payloadNames == null)
+                    payloadNames = new string[] { "ClrInstanceID", "ReadCount" };
+                return payloadNames;
+            }
+        }
+
+        public override object PayloadValue(int index)
+        {
+            switch (index)
+            {
+                case 0:
+                    return ClrInstanceID;
+                case 1:
+                    return ReadCount;
+                default:
+                    Debug.Assert(false, "Bad field index");
+                    return null;
+            }
+        }
+
+        public static ulong GetKeywords() { return 4294967296; }
+        public static string GetProviderName() { return "Microsoft-Windows-DotNETRuntimePrivate"; }
+        public static Guid GetProviderGuid() { return new Guid("763fd754-7086-4dfe-95eb-c01a46faf4ca"); }
+        private event Action<VSDListReadTraceData> Action;
         #endregion
     }
     public sealed class VSDResolveWorkerTraceData : TraceEvent
