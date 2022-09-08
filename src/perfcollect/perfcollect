@@ -1796,6 +1796,14 @@ ProcessCollectedData()
             LogAppend
         fi
 
+        # If the dump file is zero length, try to collect without the cpu field, which is sometimes not present in containers.
+        if [ ! -s $outputDumpFile ]
+        then
+            LogAppend "Running $perfcmd script -i $inputFile -f comm,pid,tid,time,event,ip,sym,dso,trace > $outputDumpFile"
+            $perfcmd script -i $inputFile -f comm,pid,tid,time,event,ip,sym,dso,trace > $outputDumpFile 2>>$logFile
+            LogAppend
+        fi
+
         WriteStatus "...FINISHED"
     fi
 
