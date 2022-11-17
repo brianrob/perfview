@@ -253,6 +253,7 @@ namespace Microsoft.Diagnostics.Tracing.StackSources
                             ulong baseAddr = ulong.Parse(strBaseAddr, System.Globalization.NumberStyles.HexNumber);
                             baseAddresses[GetFileName(path)] = baseAddr;
                         }
+                        sb.Clear();
                     }
                 }
 
