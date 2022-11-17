@@ -152,7 +152,9 @@ namespace Profiler
             SetHandle(handle);
         }
 
+#if NET462
         [SecurityPermission(SecurityAction.LinkDemand, UnmanagedCode = true)]
+#endif
         protected override bool ReleaseHandle()
         {
             return NativeMethods.CloseHandle(handle);
@@ -169,8 +171,11 @@ namespace Profiler
         public const int MAX_PATH = 260;
 
 
+
         [
+#if NET462
          System.Runtime.ConstrainedExecution.ReliabilityContract(System.Runtime.ConstrainedExecution.Consistency.WillNotCorruptState, System.Runtime.ConstrainedExecution.Cer.Success),
+#endif
          DllImport(Kernel32LibraryName)
         ]
         public static extern bool CloseHandle(IntPtr handle);
@@ -221,7 +226,7 @@ namespace Profiler
          DllImport(Kernel32LibraryName, PreserveSig = true)
         ]
         public static extern ProcessSafeHandle OpenProcess(Int32 dwDesiredAccess, bool bInheritHandle, Int32 dwProcessId);
-#if false 
+#if false
 
         [
          DllImport(Kernel32LibraryName, CharSet = CharSet.Unicode, PreserveSig = true)
@@ -470,7 +475,7 @@ namespace Profiler
         private static Guid s_CorMetaDataDispenser = new Guid("E5CB7A31-7512-11d2-89CE-0080C792E5D8");
 
         private ICLRRuntimeInfo m_runtimeInfo;
-        #endregion 
+        #endregion
     }
 
     [ComImport, Guid("809C652E-7396-11D2-9771-00A0C9B4D50C"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
@@ -822,5 +827,5 @@ namespace Profiler
             out IntPtr hModule);
     }
 
-    #endregion
+#endregion
 } /* namespace */

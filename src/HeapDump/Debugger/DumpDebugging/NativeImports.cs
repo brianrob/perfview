@@ -1166,8 +1166,10 @@ namespace Microsoft.Samples.Debugging.Native
     #endregion Native Structures
 
 
-    // SafeHandle to call CloseHandle
+// SafeHandle to call CloseHandle
+#if NET462
     [SecurityPermission(SecurityAction.LinkDemand, UnmanagedCode = true)]
+#endif
     public sealed class SafeWin32Handle : SafeHandleZeroOrMinusOneIsInvalid
     {
         public SafeWin32Handle() : base(true) { }
@@ -1261,7 +1263,9 @@ namespace Microsoft.Samples.Debugging.Native
         }
 
         // SafeHandle to call FreeLibrary
+#if NET462
         [SecurityPermission(SecurityAction.LinkDemand, UnmanagedCode = true)]
+#endif
         public sealed class SafeLoadLibraryHandle : SafeHandleZeroOrMinusOneIsInvalid
         {
             private SafeLoadLibraryHandle() : base(true) { }

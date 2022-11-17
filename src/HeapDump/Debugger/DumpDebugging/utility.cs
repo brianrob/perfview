@@ -154,7 +154,9 @@ namespace Microsoft.Samples.Debugging.CorDebug.Utility
     {
         #region Safe Handles and Native imports
         // See http://msdn.microsoft.com/msdnmag/issues/05/10/Reliability/ for more about safe handles.
+#if NET462
         [SecurityPermission(SecurityAction.LinkDemand, UnmanagedCode = true)]
+#endif
         private sealed class SafeLibraryHandle : SafeHandleZeroOrMinusOneIsInvalid
         {
             private SafeLibraryHandle() : base(true) { }
@@ -187,7 +189,7 @@ namespace Microsoft.Samples.Debugging.CorDebug.Utility
             [DllImport(s_kernel)]
             public static extern IntPtr GetProcAddress(SafeLibraryHandle hModule, String procname);
         }
-        #endregion // Safe Handles and Native imports
+#endregion // Safe Handles and Native imports
 
         /// <summary>
         /// Constructor to load a dll and be responible for freeing it.

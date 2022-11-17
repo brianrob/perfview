@@ -1562,7 +1562,11 @@ namespace Microsoft.Samples.Debugging.Native
 
             // The dump file may be many megabytes large, so we don't want to
             // read it all at once. Instead, doing a mapping.
+#if NET462
             m_fileMapping = MemoryMappedFile.CreateFromFile(m_file, null, 0, MemoryMappedFileAccess.Read, null, HandleInheritability.None, leaveOpen: true);
+#else
+            m_fileMapping = MemoryMappedFile.CreateFromFile(m_file, null, 0, MemoryMappedFileAccess.Read, HandleInheritability.None, leaveOpen: true);
+#endif
             m_mappedFileReader = new MemoryMappedFileStreamReader(m_fileMapping, length, leaveOpen: true);
 
             const uint FILE_MAP_READ = 4;
@@ -2127,7 +2131,7 @@ namespace Microsoft.Samples.Debugging.Native
             }
             return context;
         }
-#endif 
+#endif
 
         /// <summary>
         /// Get the raw thread context as a buffer or bytes. This is dangerous.
