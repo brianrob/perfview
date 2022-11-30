@@ -2,11 +2,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net6.0-windows</TargetFrameworks>
+    <TargetFrameworks>net462;net6.0-windows</TargetFrameworks>
     <Platforms>AnyCPU;x64</Platforms>
     <OutputType>Exe</OutputType>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Prefer32Bit>true</Prefer32Bit>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
 
     <RootNamespace>HeapDump</RootNamespace>
@@ -16,14 +15,17 @@
     <Copyright>Copyright © Microsoft 2011</Copyright>
   </PropertyGroup>
 
-  <PropertyGroup>
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net462'">
+    <Prefer32Bit>true</Prefer32Bit>
     <!-- NuGet won't know to restore the x64 build unless we add it explicitly -->
     <RuntimeIdentifiers>win7-x64</RuntimeIdentifiers>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Platform)' == 'AnyCPU'">
-    <!-- AnyCPU is our 32-bit build because it automatically makes the executable large address aware -->
-    <Prefer32Bit>true</Prefer32Bit>
+    <RuntimeIdentifier>win-x86</RuntimeIdentifier>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Platform)' == 'x64'">
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net6.0-windows'">
