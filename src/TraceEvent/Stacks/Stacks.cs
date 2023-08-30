@@ -857,8 +857,11 @@ namespace Microsoft.Diagnostics.Tracing.Stacks
         /// the intern stack source (interning along the way of course).   Logically baseCallStackIndex has NOTHING to do with any of the
         /// call stack indexes in the intern stack source.  
         /// </summary>
+        /// 
         private StackSourceCallStackIndex InternFullStackFromSource(StackSourceCallStackIndex baseCallStackIndex, StackSourceStacks source, int maxDepth = 1000)
         {
+            // You should be able to repurpose this code to copy stacks from the original StackSource to the new StackSource.
+
             // To avoid stack overflows.  
             if (maxDepth < 0)
             {
