@@ -874,9 +874,9 @@ namespace Microsoft.Diagnostics.Tracing.Analysis
                     GCStats.ProcessCommittedUsage(stats, committedUsage);
                 };
 
-                source.Clr.HeapCountTuning += delegate (TraceEvent traceEvent, HeapCountTuningTraceData heapCountTuning)
+                source.Clr.HeapCountTuning += delegate (HeapCountTuningTraceData heapCountTuning)
                 {
-                    var stats = currentManagedProcess(traceEvent);
+                    var stats = currentManagedProcess(heapCountTuning.RawEvent);
                     GCStats.ProcessHeapCountTuning(stats, heapCountTuning);
                 };
 

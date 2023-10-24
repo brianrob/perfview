@@ -884,34 +884,17 @@ namespace Microsoft.Diagnostics.Tracing.Parsers
                 throw new NotImplementedException();
             }
         }
-        public event Action<TraceEvent, HeapCountTuningTraceData> HeapCountTuning
+        public event Action<HeapCountTuningTraceData> HeapCountTuning
         {
             add
             {
-                this.GCDynamic += (GCDynamicTraceData d) =>
-                {
-                    if (string.CompareOrdinal(d.Name, "HeapCountTuning") == 0)
-                    {
-                        HeapCountTuningTraceData heapCountTuning = new HeapCountTuningTraceData();
-                        heapCountTuning.Version = BitConverter.ToInt16(d.Data, 0);
-                        Debug.Assert(!(heapCountTuning.Version == 1 && d.Data.Length != 36));
-                        Debug.Assert(!(heapCountTuning.Version > 1 && d.Data.Length < 36));
-                        heapCountTuning.NewHeapCount = BitConverter.ToInt16(d.Data, 2);
-                        heapCountTuning.GCIndex = BitConverter.ToInt64(d.Data, 4);
-                        heapCountTuning.MedianPercentOverhead = BitConverter.ToSingle(d.Data, 12);
-                        heapCountTuning.SmoothedMedianPercentOverhead = BitConverter.ToSingle(d.Data, 16);
-                        heapCountTuning.OverheadReductionPerStepUp = BitConverter.ToSingle(d.Data, 20);
-                        heapCountTuning.OverheadIncreasePerStepDown = BitConverter.ToSingle(d.Data, 24);
-                        heapCountTuning.SpaceCostIncreasePerStepUp = BitConverter.ToSingle(d.Data, 28);
-                        heapCountTuning.SpaceCostDecreasePerStepDown = BitConverter.ToSingle(d.Data, 32);
-                        value(d, heapCountTuning);
-                    }
-                };
+                GCDynamicDataDispatcher.EnsureRegistration(this)
+                    .HeapCountTuning += value;
             }
             remove
             {
-                // TODO, mrsharm: We currently disallow unsubscribing from the Dynamic Events.
-                throw new NotImplementedException();
+                GCDynamicDataDispatcher.EnsureRegistration(this)
+                    .HeapCountTuning -= value;
             }
         }
         public event Action<TraceEvent, HeapCountSampleTraceData> HeapCountSample
