@@ -169,6 +169,26 @@ namespace Microsoft.Diagnostics.Tracing.Session
         }
 
         /// <summary>
+        /// Enable a system provider, as exposed in Windows 10 SDK build 20348+.
+        /// 
+        /// </summary>
+        /// <param name="providerGuid">The Guid that represents the event provider enable.</param>
+        /// <param name="providerLevel">The verbosity to turn on.</param>
+        /// <param name="matchAnyKeywords">A bitvector representing the areas to turn on.</param>
+        /// <param name="options">Additional options for the provider (e.g. taking a stack trace), arguments ... </param>
+        /// <returns>true if the session already existed and needed to be restarted.</returns>
+        /// <remarks>Reference: https://learn.microsoft.com/en-us/windows/win32/etw/system-providers</remarks>
+        public bool EnableSystemProvider(Guid providerGuid, TraceEventLevel providerLevel = TraceEventLevel.Verbose, ulong matchAnyKeywords = ulong.MaxValue, TraceEventProviderOptions options = null)
+        {
+            if (!OperatingSystemVersion.AtLeast(100))
+            {
+                throw new NotSupportedException("System providers are only supported on Windows 10+.");
+            }
+
+            return EnableProvider(providerGuid, true, providerLevel, matchAnyKeywords, options);
+        }
+
+        /// <summary>
         /// Enable a NON-KERNEL provider (see also EnableKernelProvider) which has a given provider name.  
         /// This API first checks if a published provider exists by that name, otherwise it 
         /// assumes it is an EventSouce and determines the provider Guid by hashing the name according to a
@@ -205,6 +225,14 @@ namespace Microsoft.Diagnostics.Tracing.Session
         /// <param name="options">Additional options for the provider (e.g. taking a stack trace), arguments ... </param>
         /// <returns>true if the session already existed and needed to be restarted.</returns>
         public bool EnableProvider(Guid providerGuid, TraceEventLevel providerLevel = TraceEventLevel.Verbose, ulong matchAnyKeywords = ulong.MaxValue, TraceEventProviderOptions options = null)
+        {
+            return EnableProvider(providerGuid, false, providerLevel, matchAnyKeywords, options);
+        }
+
+        /// <summary>
+        /// Enables a user provider or a system provider based on the value of <paramref name="systemProvider"/>.
+        /// </summary>
+        private bool EnableProvider(Guid providerGuid, bool systemProvider, TraceEventLevel providerLevel, ulong matchAnyKeywords, TraceEventProviderOptions options)
         {
             lock (this)
             {
@@ -256,7 +284,18 @@ namespace Microsoft.Diagnostics.Tracing.Session
                     throw new NotSupportedException("Can only enable kernel events on a kernel session.");
                 }
 
-                EnsureStarted();
+                if (systemProvider)
+                {
+                    var propertiesBuff = stackalloc byte[PropertiesSize];
+                    var properties = GetProperties(propertiesBuff);
+                    properties->LogFileMode |= TraceEventNativeMethods.EVENT_TRACE_SYSTEM_LOGGER_MODE;
+
+                    EnsureStarted(properties);
+                }
+                else
+                {
+                    EnsureStarted();
+                }
 
                 // If we have provider data we add some predefined key-value pairs for infrastructure purposes. 
                 ulong matchAllKeywords = 0;

@@ -153,6 +153,9 @@
     <Compile Include="..\MemoryGraph\MemoryGraph.cs">
       <Link>memory\MemoryGraph.cs</Link>
     </Compile>
+    <Compile Include="..\Utilities\OperatingSystemVersion.cs">
+      <Link>Utilities\OperatingSystemVersion.cs</Link>
+    </Compile>
     <Compile Include="..\Utilities\DirectoryUtilities.cs">
       <Link>Utilities\DirectoryUtilities.cs</Link>
     </Compile>

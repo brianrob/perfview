@@ -29,6 +29,15 @@ namespace PerfView
     /// </summary>
     public class CommandProcessor
     {
+        static CommandProcessor()
+        {
+            // Set the kernel session name to KernelSessionName if the OS is older than Windows 10.
+            if (!OperatingSystemVersion.AtLeast(100))
+            {
+                s_KernelessionName = KernelTraceEventParser.KernelSessionName;
+            }
+        }
+
         public CommandProcessor() { }
         public int ExecuteCommand(CommandLineArgs parsedArgs)
         {
@@ -501,6 +510,8 @@ namespace PerfView
                     }
 
                     kernelModeSession.EnableKernelProvider(parsedArgs.KernelEvents, stackKeywords);
+                    kernelModeSession.EnableSystemProvider(new Guid("{82958ca9-b6cd-47f8-a3a8-03ae85a4bc24}"), TraceEventLevel.Verbose, 0x0000000000000008, new TraceEventProviderOptions() { StacksEnabled = true });
+                    //kernelModeSession.EnableSystemProvider(new Guid("{434286f7-6f1b-45bb-b37e-95f623046c7c}"), TraceEventLevel.Verbose, 0xFFFFFFFFFFFFFFFF);
                 }
 
                 // Turn on the OS Heap stuff if anyone asked for it.  
@@ -3671,7 +3682,7 @@ namespace PerfView
         }
 
         internal static string s_UserModeSessionName = "PerfViewSession";
-        internal static string s_KernelessionName = KernelTraceEventParser.KernelSessionName;
+        internal static string s_KernelessionName = "PerfViewSessionKernel";
         private static string s_HeapSessionName { get { return s_UserModeSessionName + "Heap"; } }
 
         private static bool s_addedSupportDirToPath;

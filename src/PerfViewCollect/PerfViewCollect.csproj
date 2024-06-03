@@ -30,6 +30,7 @@
     <Compile Include="..\PerfView\Utilities\CacheFiles.cs" />
     <Compile Include="..\PerfView\Utilities\ResourceUtilities.cs" />
     <Compile Include="..\PerfView\Utilities\StreamUtilities.cs" />
+    <Compile Include="..\Utilities\OperatingSystemVersion.cs" />
     <Compile Include="..\Utilities\FileUtilities.cs" />
     <Compile Include="..\Utilities\DirectoryUtilities.cs" />
     <Compile Include="..\Utilities\StringUtilities.cs" />
