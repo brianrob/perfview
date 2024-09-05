@@ -142,6 +142,7 @@ namespace PerfView
         public bool Wpr;                    // Collect like WPR (no zip, puts NGEN pdbs in a .ngenpdbs directory).  
 
         public string[] Providers;          // Additional providers to turn on.   
+        public string[] SystemProviders;    // System providers to turn on.
 
         // Stop options.  
         public string FocusProcess;       // The target process for CLR Rundown.  
@@ -432,6 +433,11 @@ namespace PerfView
 
             parser.DefineOptionalQualifier("Providers", ref Providers,
                 "Additional providers.  This is comma separated list of ProviderGuid:Keywords:Level:Stack specs.  " +
+                "This qualifier has the same syntax as the Additional Providers TextBox in the collection window.  " +
+                " See help on that for more.");
+
+            parser.DefineOptionalQualifier("SystemProviders", ref SystemProviders,
+                "System providers.  This is comma separated list of ProviderGuid:Keywords:Level:Stack specs.  " +
                 "This qualifier has the same syntax as the Additional Providers TextBox in the collection window.  " +
                 " See help on that for more.");
 

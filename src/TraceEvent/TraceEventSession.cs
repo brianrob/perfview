@@ -170,7 +170,6 @@ namespace Microsoft.Diagnostics.Tracing.Session
 
         /// <summary>
         /// Enable a system provider, as exposed in Windows 10 SDK build 20348+.
-        /// 
         /// </summary>
         /// <param name="providerGuid">The Guid that represents the event provider enable.</param>
         /// <param name="providerLevel">The verbosity to turn on.</param>
@@ -185,7 +184,7 @@ namespace Microsoft.Diagnostics.Tracing.Session
                 throw new NotSupportedException("System providers are only supported on Windows 10+.");
             }
 
-            return EnableProvider(providerGuid, true, providerLevel, matchAnyKeywords, options);
+            return EnableProvider(providerGuid, systemProvider: true, providerLevel, matchAnyKeywords, options);
         }
 
         /// <summary>
@@ -279,6 +278,7 @@ namespace Microsoft.Diagnostics.Tracing.Session
                     }
                 }
 
+                // This will only fire on operating systems lower than Windows 10, as we default to a different sesion name for Windows 10+.
                 if (m_SessionName == KernelTraceEventParser.KernelSessionName)
                 {
                     throw new NotSupportedException("Can only enable kernel events on a kernel session.");

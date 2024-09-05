@@ -1019,6 +1019,12 @@ namespace PerfView
                         EnableAdditionalProviders(userModeSession, parsedArgs.Providers, parsedArgs.CommandLine, options);
                     }
 
+                    LogFile.WriteLine("Enabling system providers specified by the user.");
+                    if (parsedArgs.SystemProviders != null)
+                    {
+                        EnableAdditionalProviders(kernelModeSession, parsedArgs.SystemProviders, parsedArgs.CommandLine, options);
+                    }
+
                     // OK at this point, we want to leave both sessions for an indefinite period of time (even past process exit)
                     kernelModeSession.StopOnDispose = false;
                     userModeSession.StopOnDispose = false;
@@ -3296,6 +3302,35 @@ namespace PerfView
                 {
                     CheckAndWarnAboutAspNet(parsedProvider.Guid);
                     EnableUserProvider(userModeSession, parsedProvider.Name, parsedProvider.Guid, parsedProvider.Level,
+                        (ulong)parsedProvider.MatchAnyKeywords, parsedProvider.Options ?? options);
+                }
+            }
+        }
+
+        private void EnableSystemProviders(TraceEventSession kernelSession, string[] providerSpecs, string commandLine, TraceEventProviderOptions options)
+        {
+            string wildCardFileName = null;
+            if (commandLine != null)
+            {
+                wildCardFileName = Command.FindOnPath(GetExeName(commandLine));
+            }
+
+            var parsedProviders = ProviderParser.ParseProviderSpecs(providerSpecs, wildCardFileName, options, LogFile);
+            foreach (var parsedProvider in parsedProviders)
+            {
+                if (parsedProvider.Guid == Guid.Empty)
+                {
+                    throw new InvalidOperationException($"System providers must be specified by GUID and not by name.  Specified name: {parsedProvider.Name}");
+                }
+
+                if (parsedProvider.Level == TraceEventLevel.Always && parsedProvider.MatchAnyKeywords == 0)
+                {
+                    LogFile.WriteLine("Disabling Provider {0} Guid {1}", parsedProvider.Name, parsedProvider.Guid);
+                    kernelSession.DisableProvider(parsedProvider.Guid);
+                }
+                else
+                {
+                    kernelSession.EnableSystemProvider(parsedProvider.Guid, parsedProvider.Level,
                         (ulong)parsedProvider.MatchAnyKeywords, parsedProvider.Options ?? options);
                 }
             }
