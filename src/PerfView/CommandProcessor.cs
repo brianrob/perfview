@@ -1022,7 +1022,7 @@ namespace PerfView
                     LogFile.WriteLine("Enabling system providers specified by the user.");
                     if (parsedArgs.SystemProviders != null)
                     {
-                        EnableAdditionalProviders(kernelModeSession, parsedArgs.SystemProviders, parsedArgs.CommandLine, options);
+                        EnableSystemProviders(kernelModeSession, parsedArgs.SystemProviders, parsedArgs.CommandLine, options);
                     }
 
                     // OK at this point, we want to leave both sessions for an indefinite period of time (even past process exit)
@@ -2996,6 +2996,11 @@ namespace PerfView
             if (parsedArgs.Providers != null)
             {
                 cmdLineArgs += " /Providers:" + Command.Quote(string.Join(",", parsedArgs.Providers));
+            }
+
+            if (parsedArgs.SystemProviders != null)
+            {
+                cmdLineArgs += " /SystemProviders:" + Command.Quote(string.Join(",", parsedArgs.SystemProviders));
             }
 
             if (parsedArgs.KeepAllEvents)
