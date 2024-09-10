@@ -438,8 +438,7 @@ namespace PerfView
 
             parser.DefineOptionalQualifier("SystemProviders", ref SystemProviders,
                 "System providers.  This is comma separated list of ProviderGuid:Keywords:Level:Stack specs.  " +
-                "This qualifier has the same syntax as the Additional Providers TextBox in the collection window.  " +
-                " See help on that for more.");
+                "This qualifier has the same syntax as /Providers.  Valid values are documented at https://learn.microsoft.com/en-us/windows/win32/etw/system-providers.");
 
             string[] onlyProviders = null;
             parser.DefineOptionalQualifier("OnlyProviders", ref onlyProviders,

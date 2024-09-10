@@ -3335,7 +3335,7 @@ namespace PerfView
                 }
                 else
                 {
-                    kernelSession.EnableSystemProvider(parsedProvider.Guid, parsedProvider.Level,
+                    EnableSystemProvider(kernelSession, string.Empty, parsedProvider.Guid, parsedProvider.Level,
                         (ulong)parsedProvider.MatchAnyKeywords, parsedProvider.Options ?? options);
                 }
             }
@@ -3486,6 +3486,40 @@ namespace PerfView
                 providerName, providerLevel, matchAnyKeywords, stacksEnabled, valuesStr, providerGuid);
 
             userModeSession.EnableProvider(providerGuid, providerLevel, matchAnyKeywords, options);
+        }
+
+        private void EnableSystemProvider(TraceEventSession kernelSession, string providerName, Guid providerGuid,
+            TraceEventLevel providerLevel, ulong matchAnyKeywords, TraceEventProviderOptions options)
+        {
+            var valuesStr = "";
+            int stacksEnabled = 0;
+
+            if (options != null)
+            {
+                if (options.StacksEnabled)
+                {
+                    stacksEnabled = 1;
+                }
+
+                if (options.Arguments != null)
+                {
+
+                    foreach (var keyValue in options.Arguments)
+                    {
+                        if (valuesStr.Length != 0)
+                        {
+                            valuesStr += ",";
+                        }
+
+                        valuesStr += keyValue.Key + "=" + keyValue.Value;
+                    }
+                }
+            }
+
+            LogFile.WriteLine("Enabling System Provider:{0} Level:{1} Keywords:0x{2:x} Stacks:{3} Values:{4} Guid:{5}",
+                providerName, providerLevel, matchAnyKeywords, stacksEnabled, valuesStr, providerGuid);
+
+            kernelSession.EnableProvider(providerGuid, providerLevel, matchAnyKeywords, options);
         }
 
         private static string GetExeName(string commandLine)
