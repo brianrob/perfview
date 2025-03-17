@@ -42,6 +42,8 @@ using Microsoft.Diagnostics.Tracing.Parsers.Tpl;
 using Utilities;
 using Address = System.UInt64;
 using EventSource = EventSources.EventSource;
+using System.Security;
+using Microsoft.Diagnostics.Tracing.Parsers.Universal.Events;
 
 namespace PerfView
 {
@@ -6017,7 +6019,7 @@ table {
                                     {
                                         const int numBuckets = 20;
                                         int bucket = (int)(normalizeDistance * numBuckets);
-                                        int bucketSizeInPages = module.ModuleFile.ImageSize / (numBuckets * 4096);
+                                        int bucketSizeInPages = (int)(module.ModuleFile.ImageSize / (numBuckets * 4096));
                                         string bucketName = "Image Bucket " + bucket + " Size " + bucketSizeInPages + " Pages";
                                         stackIndex = stackSource.Interner.CallStackIntern(stackSource.Interner.FrameIntern(bucketName), stackIndex);
                                     }
@@ -9433,6 +9435,8 @@ table {
             bool hasAspNetCoreHosting = false;
             bool hasContention = false;
             bool hasWaitHandle = false;
+            bool hasUniversalSystem = false;
+            bool hasUniversalCPU = false;
             if (m_traceLog != null)
             {
                 foreach (TraceEventCounts eventStats in m_traceLog.Stats)
@@ -9486,6 +9490,14 @@ table {
                     {
                         hasWaitHandle = true;
                     }
+                    else if (eventStats.ProviderGuid == UniversalSystemTraceEventParser.ProviderGuid)
+                    {
+                        hasUniversalSystem = true;
+                    }
+                    else if (eventStats.ProviderGuid == UniversalEventsTraceEventParser.ProviderGuid && eventStats.EventName.StartsWith("cpu"))
+                    {
+                        hasUniversalCPU = true;
+                    }
                 }
             }
 
@@ -9495,6 +9507,16 @@ table {
 
             if (m_traceLog != null)
             {
+                if (hasUniversalSystem)
+                {
+                    m_Children.Add(new PerfViewProcesses(this));
+                }
+
+                if (hasUniversalCPU)
+                {
+                    m_Children.Add(new PerfViewStackSource(this, "CPU"));
+                }
+
                 m_Children.Add(new PerfViewEventSource(this));
                 m_Children.Add(new PerfViewEventStats(this));
 
@@ -9749,6 +9771,26 @@ table {
                         };
                         eventSource.Process();
                         stackSource.DoneAddingSamples();
+
+                        return stackSource;
+                    }
+                case "CPU":
+                    {
+                        var eventLog = GetTraceLog(log);
+                        var eventSource = eventLog.Events.GetSource();
+                        var stackSource = new MutableTraceEventStackSource(eventLog);
+                        var sample = new StackSourceSample(stackSource);
+
+                        var universalEventsParser = new UniversalEventsTraceEventParser(eventSource);
+                        universalEventsParser.cpu += delegate (SampleTraceData data)
+                        {
+                            sample.TimeRelativeMSec = data.TimeStampRelativeMSec;
+                            sample.Metric = data.Value;
+                            sample.StackIndex = stackSource.GetCallStack(data.CallStackIndex(), data);
+                            stackSource.AddSample(sample);
+                            
+                        };
+                        eventSource.Process();
 
                         return stackSource;
                     }

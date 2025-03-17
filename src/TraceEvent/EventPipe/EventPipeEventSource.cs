@@ -1098,6 +1098,11 @@ internal interface IBlockParser : IDisposable
                 header.Payload = (IntPtr)Unsafe.AsPointer<byte>(ref MemoryMarshal.GetReference(reader.RemainingBytes));
                 header.TotalNonHeaderSize = header.PayloadSize;
             }
+
+            // These fields aren't read from the file itself, but must be reset on each read
+            // to ensure that events that don't have a stack are handled properly.
+            header.StackBytesSize = 0;
+            header.StackBytes = IntPtr.Zero;
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
