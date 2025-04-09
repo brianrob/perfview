@@ -705,7 +705,7 @@ internal interface IBlockParser : IDisposable
             StreamLabel startOfBlock = _reader.Current;
             byte[] blockBytes = new byte[header.Length];
             _reader.Read(blockBytes, 0, blockBytes.Length);
-            _source.ReadTraceBlockV6OrGreater(new SpanReader(blockBytes,(long)startOfBlock));
+            _source.ReadTraceBlockV6OrGreater(new SpanReader(blockBytes,(long)_reader.Current));
         }
 
         public void ParseRemainder()
