@@ -44,11 +44,11 @@ namespace Microsoft.Diagnostics.Tracing.Parsers
             }
         }
 
-        public event Action<ProcessExitTraceData> ProcessExit
+        public event Action<EmptyTraceData> ProcessExit
         {
             add
             {
-                source.RegisterEventTemplate(new ProcessExitTraceData(value, 2, (int)TraceEventTask.Default, "ProcessExit", Guid.Empty, 0, "Default", ProviderGuid, ProviderName));
+                source.RegisterEventTemplate(new EmptyTraceData(value, 2, (int)TraceEventTask.Default, "ProcessExit", Guid.Empty, 0, "Default", ProviderGuid, ProviderName));
             }
             remove
             {
@@ -92,7 +92,7 @@ namespace Microsoft.Diagnostics.Tracing.Parsers
                 var templates = new TraceEvent[5];
                 templates[0] = new ProcessCreateTraceData(null, 0, (int)TraceEventTask.Default, "ExistingProcess", Guid.Empty, 0, "Default", ProviderGuid, ProviderName);
                 templates[1] = new ProcessCreateTraceData(null, 1, (int)TraceEventTask.Default, "ProcessCreate", Guid.Empty, 0, "Default", ProviderGuid, ProviderName);
-                templates[2] = new ProcessExitTraceData(null, 2, (int)TraceEventTask.Default, "ProcessExit", Guid.Empty, 0, "Default", ProviderGuid, ProviderName);
+                templates[2] = new EmptyTraceData(null, 2, (int)TraceEventTask.Default, "ProcessExit", Guid.Empty, 0, "Default", ProviderGuid, ProviderName);
                 templates[3] = new ProcessMappingTraceData(null, 3, (int)TraceEventTask.Default, "ProcessMapping", Guid.Empty, 0, "Default", ProviderGuid, ProviderName);
                 templates[4] = new ProcessSymbolTraceData(null, 4, (int)TraceEventTask.Default, "ProcessSymbol", Guid.Empty, 0, "Default", ProviderGuid, ProviderName);
                 s_templates = templates;
@@ -110,12 +110,11 @@ namespace Microsoft.Diagnostics.Tracing.Parsers.Universal.Events
 {
     public sealed class ProcessCreateTraceData : TraceEvent
     {
-        public int Id { get { return GetInt32At(0); } }
-        public int NamespaceId { get { return GetInt32At(4); } }
+        public long NamespaceId { get { return GetVarIntAt(0); } }
 
-        public string Name { get { return GetUnicodeStringAt(8); } }
+        public string Name { get { return GetUTF8StringAt(SkipVarInt(0)); } }
 
-        public string NamespaceName { get { return GetUnicodeStringAt(SkipUnicodeString(8)); } }
+        public string NamespaceName { get { return GetUTF8StringAt(SkipUTF8String(SkipVarInt(0))); } }
 
         #region Private
         internal ProcessCreateTraceData(Action<ProcessCreateTraceData> action, int eventID, int task, string taskName, Guid taskGuid, int opcode, string opcodeName, Guid providerGuid, string providerName)
@@ -136,7 +135,6 @@ namespace Microsoft.Diagnostics.Tracing.Parsers.Universal.Events
         public override StringBuilder ToXml(StringBuilder sb)
         {
             Prefix(sb);
-            XmlAttrib(sb, "Id", Id);
             XmlAttrib(sb, "NamespaceId", NamespaceId);
             XmlAttrib(sb, "Name", Name);
             XmlAttrib(sb, "NamespaceName", NamespaceName);
@@ -149,7 +147,7 @@ namespace Microsoft.Diagnostics.Tracing.Parsers.Universal.Events
             get
             {
                 if (payloadNames == null)
-                    payloadNames = new string[] { "Id", "NamespaceId", "Name", "NamespaceName" };
+                    payloadNames = new string[] { "NamespaceId", "Name", "NamespaceName" };
                 return payloadNames;
             }
         }
@@ -159,12 +157,10 @@ namespace Microsoft.Diagnostics.Tracing.Parsers.Universal.Events
             switch (index)
             {
                 case 0:
-                    return Id;
-                case 1:
                     return NamespaceId;
-                case 2:
+                case 1:
                     return Name;
-                case 3:
+                case 2:
                     return NamespaceName;
                 default:
                     Debug.Assert(false, "Bad field index");
@@ -179,78 +175,21 @@ namespace Microsoft.Diagnostics.Tracing.Parsers.Universal.Events
         #endregion
     }
 
-    public sealed class ProcessExitTraceData : TraceEvent
-    {
-        public int ProcessId { get { return GetInt32At(0); } }
-
-        #region Private
-        internal ProcessExitTraceData(Action<ProcessExitTraceData> action, int eventID, int task, string taskName, Guid taskGuid, int opcode, string opcodeName, Guid providerGuid, string providerName)
-            : base(eventID, task, taskName, taskGuid, opcode, opcodeName, providerGuid, providerName)
-        {
-            Action = action;
-        }
-        protected internal override void Dispatch()
-        {
-            Action(this);
-        }
-
-        protected internal override Delegate Target
-        {
-            get { return Action; }
-            set { Action = (Action<ProcessExitTraceData>)value; }
-        }
-        public override StringBuilder ToXml(StringBuilder sb)
-        {
-            Prefix(sb);
-            XmlAttrib(sb, "ProcessId", ProcessId);
-            sb.Append("/>");
-            return sb;
-        }
-
-        public override string[] PayloadNames
-        {
-            get
-            {
-                if (payloadNames == null)
-                    payloadNames = new string[] { "ProcessId" };
-                return payloadNames;
-            }
-        }
-
-        public override object PayloadValue(int index)
-        {
-            switch (index)
-            {
-                case 0:
-                    return ProcessId;
-                default:
-                    Debug.Assert(false, "Bad field index");
-                    return null;
-            }
-        }
-
-        public static ulong GetKeywords() { return 0; }
-        public static string GetProviderName() { return UniversalEventsTraceEventParser.ProviderName; }
-        public static Guid GetProviderGuid() { return UniversalEventsTraceEventParser.ProviderGuid; }
-        private event Action<ProcessExitTraceData> Action;
-        #endregion
-    }
-
     public sealed class ProcessMappingTraceData : TraceEvent
     {
-        public int Id { get { return GetInt32At(0); } }
+        public long Id { get { return GetVarIntAt(0); } }
 
-        public int ProcessId { get { return GetInt32At(4); } }
+        public long ProcessId { get { return GetVarIntAt(SkipVarInt(0)); } }
 
-        public Address StartAddress { get { return (Address)GetInt64At(8); } }
+        public Address StartAddress { get { return (Address)GetInt64At(SkipVarInt(SkipVarInt(0))); } }
 
-        public Address EndAddress { get { return (Address)GetInt64At(16); } }
+        public Address EndAddress { get { return (Address)GetInt64At(SkipVarInt(SkipVarInt(0)) + 8); } }
 
-        public Address FileOffset { get { return (Address)GetInt64At(24); } }
+        public Address FileOffset { get { return (Address)GetInt64At(SkipVarInt(SkipVarInt(0)) + 16); } }
 
-        public string FileName { get { return GetUnicodeStringAt(32); } }
+        public string FileName { get { return GetUTF8StringAt(SkipVarInt(SkipVarInt(0)) + 24); } }
 
-        public string SymbolIndex { get { return GetUnicodeStringAt(SkipUnicodeString(32)); } }
+        public long MetadataId { get { return GetVarIntAt(SkipUTF8String(SkipVarInt(SkipVarInt(0)) + 24)); } }
 
         #region Private
         internal ProcessMappingTraceData(Action<ProcessMappingTraceData> action, int eventID, int task, string taskName, Guid taskGuid, int opcode, string opcodeName, Guid providerGuid, string providerName)
@@ -277,7 +216,7 @@ namespace Microsoft.Diagnostics.Tracing.Parsers.Universal.Events
             XmlAttrib(sb, "EndAddress", EndAddress);
             XmlAttrib(sb, "FileOffset", FileOffset);
             XmlAttrib(sb, "FileName", FileName);
-            XmlAttrib(sb, "SymbolIndex", SymbolIndex);
+            XmlAttrib(sb, "MetadataId", MetadataId);
             sb.Append("/>");
             return sb;
         }
@@ -287,7 +226,7 @@ namespace Microsoft.Diagnostics.Tracing.Parsers.Universal.Events
             get
             {
                 if (payloadNames == null)
-                    payloadNames = new string[] { "Id", "ProcessId", "StartAddress", "EndAddress", "FileOffset", "FileName", "SymbolIndex" };
+                    payloadNames = new string[] { "Id", "ProcessId", "StartAddress", "EndAddress", "FileOffset", "FileName", "MetadataId" };
                 return payloadNames;
             }
         }
@@ -309,7 +248,7 @@ namespace Microsoft.Diagnostics.Tracing.Parsers.Universal.Events
                 case 5:
                     return FileName;
                 case 6:
-                    return SymbolIndex;
+                    return MetadataId;
                 default:
                     Debug.Assert(false, "Bad field index");
                     return null;
@@ -325,15 +264,15 @@ namespace Microsoft.Diagnostics.Tracing.Parsers.Universal.Events
 
     public sealed class ProcessSymbolTraceData : TraceEvent
     {
-        public int Id { get { return GetInt32At(0); } }
+        public long Id { get { return GetVarIntAt(0); } }
 
-        public int MappingId { get { return GetInt32At(4); } }
+        public long MappingId { get { return GetVarIntAt(SkipVarInt(0)); } }
 
-        public Address StartAddress { get { return (Address)GetInt64At(8); } }
+        public Address StartAddress { get { return (Address)GetInt64At(SkipVarInt(SkipVarInt(0))); } }
 
-        public Address EndAddress { get { return (Address)GetInt64At(16); } }
+        public Address EndAddress { get { return (Address)GetInt64At(SkipVarInt(SkipVarInt(0)) + 8); } }
 
-        public string Name { get { return GetUnicodeStringAt(24); } }
+        public string Name { get { return GetUTF8StringAt(SkipVarInt(SkipVarInt(0)) + 16); } }
 
         #region Private
         internal ProcessSymbolTraceData(Action<ProcessSymbolTraceData> action, int eventID, int task, string taskName, Guid taskGuid, int opcode, string opcodeName, Guid providerGuid, string providerName)

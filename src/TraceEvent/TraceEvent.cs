@@ -1683,8 +1683,8 @@ namespace Microsoft.Diagnostics.Tracing
             return PointerSize * numPointers;
         }
         /// <summary>
-        /// Given an Offset to a null terminated ASCII string in an event blob, return the string that is
-        /// held there.   
+        /// Given an Offset to a counted UTF8 string in an event blob, return the string that is
+        /// held there.  The string length is pre-pended to the string and is stored in a ushort (unsigned 16-bytes).
         /// </summary>
         protected internal string GetUTF8StringAt(int offset)
         {
@@ -1695,7 +1695,7 @@ namespace Microsoft.Diagnostics.Tracing
             }
             else
             {
-                return TraceEventRawReaders.ReadUTF8String(DataStart, offset, EventDataLength);
+                return TraceEventRawReaders.ReadCountedUTF8String(DataStart, offset, EventDataLength);
             }
         }
         /// <summary>
@@ -4666,6 +4666,29 @@ namespace Microsoft.Diagnostics.Tracing
                 buff[i++] = c;
             }
             return Encoding.UTF8.GetString(buff, 0, i);     // Convert to unicode.  
+        }
+
+        internal static unsafe string ReadCountedUTF8String(IntPtr pointer, int offset, int bufferLength)
+        {
+            // Read the length of the string
+            ushort length = (ushort)ReadInt16(pointer, offset);
+            if (length == 0)
+            {
+                return string.Empty;
+            }
+            if (length > bufferLength - sizeof(ushort))
+            {
+                throw new FormatException("Invalid UTF8 String");
+            }
+            var buff = new byte[length];
+            byte* ptr = ((byte*)pointer) + offset + sizeof(ushort);
+            ushort i = 0;
+            while (i < length)
+            {
+                byte c = ptr[i];
+                buff[i++] = c;
+            }
+            return Encoding.UTF8.GetString(buff, 0, i);     // Convert to unicode.
         }
     }
 
