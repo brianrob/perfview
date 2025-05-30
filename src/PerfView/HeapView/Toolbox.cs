@@ -735,6 +735,7 @@ namespace PerfView
         {
             return name.Equals("clr", StringComparison.OrdinalIgnoreCase) ||
                    name.Equals("coreclr", StringComparison.OrdinalIgnoreCase) ||
+                   name.Equals("libcoreclr", StringComparison.OrdinalIgnoreCase) ||
                    name.Equals("mscorwks", StringComparison.OrdinalIgnoreCase) ||
                    name.Equals("mrt100", StringComparison.OrdinalIgnoreCase);
         }
@@ -746,6 +747,8 @@ namespace PerfView
         {
             return name.Equals("mscorlib", StringComparison.OrdinalIgnoreCase) ||
                    name.Equals("mscorlib.ni", StringComparison.OrdinalIgnoreCase) ||
+                   name.Equals("system.private.corelib", StringComparison.OrdinalIgnoreCase) ||
+                   name.Equals("system.private.corelib.il", StringComparison.OrdinalIgnoreCase) ||
                    name.Equals("corefx", StringComparison.OrdinalIgnoreCase);
         }
 
@@ -775,8 +778,8 @@ namespace PerfView
                 {
                     foreach (TraceLoadedModule m in mods)
                     {
-                        keep = false;
-
+                        // We prefer to find the CLR version, but if it isn't present (e.g. single-process EventPipe traces),
+                        // use the version information from System.Private.CoreLib if it's present.
                         string name = m.Name;
 
                         if (name.IsClr() || name.IsMscorlib() && String.IsNullOrEmpty(clrVersion))
