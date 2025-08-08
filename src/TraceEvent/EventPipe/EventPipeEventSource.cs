@@ -426,10 +426,15 @@ namespace Microsoft.Diagnostics.Tracing
                 Debug.Assert(sessionEndTimeQPC == 0 || eventRecord->EventHeader.TimeStamp - sessionEndTimeQPC < _QPCFreq * 24 * 3600);
 
                 var traceEvent = Lookup(eventRecord);
+
+                // Set the opcode from the incoming metadata regardless of what is hardcoded in existing parsers.
+                traceEvent.opcode = (TraceEventOpcode)eventRecord->EventHeader.Opcode;
+
                 if (traceEvent.NeedsFixup)
                 {
                     traceEvent.FixupData();
                 }
+
                 Dispatch(traceEvent);
                 sessionEndTimeQPC = eventRecord->EventHeader.TimeStamp;
             }
