@@ -62,6 +62,7 @@ SOFTWARE.
 
     <SolidColorBrush x:Key="AlternateRowBackground" Color="#FF424124" />
     <SolidColorBrush x:Key="HelpRibbonBackground" Color="#FF323838" />
+    <SolidColorBrush x:Key="AccessibleFocusVisualBrush" Color="#FF60CDFF" />
 
     <SolidColorBrush x:Key="ScrollBarBackground" Color="#2e2e2e" />
     <SolidColorBrush x:Key="ScrollBarControlForground" Color="#4d4d4d" />
@@ -106,6 +107,20 @@ SOFTWARE.
                                Stroke="{StaticResource ControlBrightPrimaryColourBorderBrush}"
                                SnapsToDevicePixels="true"
                                Margin="2" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Two-pixel keyboard focus visual for surfaces that require enhanced visibility. -->
+    <Style x:Key="AccessibleFocusVisual">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Rectangle Margin="1"
+                               SnapsToDevicePixels="true"
+                               Stroke="{StaticResource AccessibleFocusVisualBrush}"
+                               StrokeThickness="2" />
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

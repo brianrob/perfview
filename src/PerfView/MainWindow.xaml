@@ -227,12 +227,15 @@
             <GridSplitter Grid.Column="1" Width="3"  HorizontalAlignment="Center" VerticalAlignment="Stretch"/>
             <RichTextBox Name="Body" Grid.Column="2" IsReadOnly="True" IsDocumentEnabled="True"
                          IsEnabled="{Binding ElementName=StatusBar, Path=IsNotWorking}"
+                         FocusVisualStyle="{DynamicResource AccessibleFocusVisual}"
                          VerticalScrollBarVisibility="auto" AutomationProperties.Name="Usage Information">
                 <RichTextBox.Resources>
                     <Style TargetType="{x:Type Paragraph}">
                         <Setter Property="Margin" Value="0"/>
                     </Style>
-
+                    <Style TargetType="{x:Type Hyperlink}" BasedOn="{StaticResource {x:Type Hyperlink}}">
+                        <Setter Property="FocusVisualStyle" Value="{DynamicResource AccessibleFocusVisual}"/>
+                    </Style>
                 </RichTextBox.Resources>
                 <RichTextBox.Document>
                     <FlowDocument>
