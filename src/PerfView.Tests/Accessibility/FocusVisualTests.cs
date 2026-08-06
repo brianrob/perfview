@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using REghZyFramework.Themes;
 using Xunit;
 
 namespace PerfViewTests.Accessibility
@@ -32,9 +33,7 @@ namespace PerfViewTests.Accessibility
         [WpfFact]
         public void ReportedControlsUseAccessibleFocusVisual()
         {
-            Application application = Application.Current ?? new Application();
             ResourceDictionary theme = LoadTheme("LightTheme.xaml");
-            application.Resources.MergedDictionaries.Add(theme);
 
             MainWindow mainWindow = null;
             try
@@ -42,6 +41,7 @@ namespace PerfViewTests.Accessibility
                 App.CommandLineArgs = new CommandLineArgs();
                 App.CommandProcessor = new CommandProcessor();
                 mainWindow = new MainWindow(true);
+                mainWindow.Resources.MergedDictionaries.Add(theme);
 
                 Style expectedStyle = (Style)theme["AccessibleFocusVisual"];
                 Assert.Same(expectedStyle, mainWindow.Body.FocusVisualStyle);
@@ -61,7 +61,6 @@ namespace PerfViewTests.Accessibility
             finally
             {
                 mainWindow?.Close();
-                application.Resources.MergedDictionaries.Remove(theme);
             }
         }
 
@@ -96,17 +95,21 @@ namespace PerfViewTests.Accessibility
 
         private static ResourceDictionary LoadTheme(string themeName)
         {
-            if (Application.Current == null)
+            if (themeName == "LightTheme.xaml")
             {
-                new Application();
+                var theme = new LightTheme();
+                theme.InitializeComponent();
+                return theme;
             }
 
-            return new ResourceDictionary
+            if (themeName == "DarkTheme.xaml")
             {
-                Source = new Uri(
-                    $"/PerfView;component/Themes/{themeName}",
-                    UriKind.Relative)
-            };
+                var theme = new DarkTheme();
+                theme.InitializeComponent();
+                return theme;
+            }
+
+            throw new ArgumentException($"Unknown theme '{themeName}'.", nameof(themeName));
         }
 
         private static double GetContrastRatio(Color first, Color second)
