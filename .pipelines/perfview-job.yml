@@ -36,6 +36,7 @@ steps:
     testRunTitle: 'PerfView - ${{ parameters.flavor }}'
     vsTestVersion: 'toolsInstaller'
     runTestsInIsolation: true
+    donotPublishTestResults: true
     otherConsoleOptions: '--blame'
 
 - task: CopyFiles@2
