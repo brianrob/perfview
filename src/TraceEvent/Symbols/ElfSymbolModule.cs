@@ -251,6 +251,12 @@ namespace Microsoft.Diagnostics.Symbols
 
                     // Read all section headers in one bulk read.
                     int shTableSize = hdr.ShCount * hdr.ShEntrySize;
+                    if (!IsValidFileRange(stream, hdr.ShOffset, (ulong)shTableSize))
+                    {
+                        Debug.WriteLine("ReadDebugLink: Section headers are outside the file.");
+                        return null;
+                    }
+
                     byte[] shTable = new byte[shTableSize];
                     stream.Seek((long)hdr.ShOffset, SeekOrigin.Begin);
                     if (ReadFully(stream, shTable, 0, shTableSize) < shTableSize)
@@ -266,6 +272,12 @@ namespace Microsoft.Diagnostics.Symbols
                     if (shstrSize == 0 || shstrSize > MaxShstrtabSize)
                     {
                         Debug.WriteLine("ReadDebugLink: Invalid shstrtab size.");
+                        return null;
+                    }
+
+                    if (!IsValidFileRange(stream, shstrOffset, shstrSize))
+                    {
+                        Debug.WriteLine("ReadDebugLink: shstrtab is outside the file.");
                         return null;
                     }
 
@@ -303,6 +315,12 @@ namespace Microsoft.Diagnostics.Symbols
                             return null;
                         }
 
+                        if (!IsValidFileRange(stream, secOffset, secSize))
+                        {
+                            Debug.WriteLine("ReadDebugLink: .gnu_debuglink section is outside the file.");
+                            return null;
+                        }
+
                         byte[] sectionData = new byte[(int)secSize];
                         stream.Seek((long)secOffset, SeekOrigin.Begin);
                         if (ReadFully(stream, sectionData, 0, sectionData.Length) < sectionData.Length)
@@ -311,15 +329,13 @@ namespace Microsoft.Diagnostics.Symbols
                             return null;
                         }
 
-                        // Extract the null-terminated filename.
-                        int nullPos = Array.IndexOf(sectionData, (byte)0);
-                        if (nullPos <= 0)
+                        if (!TryParseDebugLinkSection(sectionData, out string debugLink))
                         {
-                            Debug.WriteLine("ReadDebugLink: Empty or missing filename in .gnu_debuglink.");
+                            Debug.WriteLine("ReadDebugLink: Invalid .gnu_debuglink section data.");
                             return null;
                         }
 
-                        return Encoding.UTF8.GetString(sectionData, 0, nullPos);
+                        return debugLink;
                     }
 
                     Debug.WriteLine("ReadDebugLink: No .gnu_debuglink section found.");
@@ -337,6 +353,104 @@ namespace Microsoft.Diagnostics.Symbols
 
         // Name of the .gnu_debuglink section (UTF-8 bytes for fast comparison).
         private static readonly byte[] GnuDebugLinkName = Encoding.UTF8.GetBytes(".gnu_debuglink");
+        private static readonly UTF8Encoding StrictUtf8 = new UTF8Encoding(false, true);
+
+        /// <summary>
+        /// Returns whether <paramref name="fileName"/> is a platform-independent single file name.
+        /// </summary>
+        internal static bool IsValidDebugLinkFileName(string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName) ||
+                fileName == "." ||
+                fileName == ".." ||
+                fileName[fileName.Length - 1] == ' ' ||
+                fileName[fileName.Length - 1] == '.')
+            {
+                return false;
+            }
+
+            for (int i = 0; i < fileName.Length; i++)
+            {
+                char c = fileName[i];
+                if (c < 0x20 || c == '<' || c == '>' || c == ':' || c == '"' ||
+                    c == '/' || c == '\\' || c == '|' || c == '?' || c == '*')
+                {
+                    return false;
+                }
+            }
+
+            // Windows treats these names as devices even when an extension is present.
+            int extensionPos = fileName.IndexOf('.');
+            string baseName = extensionPos >= 0 ? fileName.Substring(0, extensionPos) : fileName;
+            if (baseName.Equals("CON", StringComparison.OrdinalIgnoreCase) ||
+                baseName.Equals("PRN", StringComparison.OrdinalIgnoreCase) ||
+                baseName.Equals("AUX", StringComparison.OrdinalIgnoreCase) ||
+                baseName.Equals("NUL", StringComparison.OrdinalIgnoreCase) ||
+                IsNumberedDeviceName(baseName, "COM") ||
+                IsNumberedDeviceName(baseName, "LPT"))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool IsNumberedDeviceName(string fileName, string prefix)
+        {
+            return fileName.Length == prefix.Length + 1 &&
+                   fileName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) &&
+                   fileName[prefix.Length] >= '1' &&
+                   fileName[prefix.Length] <= '9';
+        }
+
+        private static bool IsValidFileRange(Stream stream, ulong offset, ulong size)
+        {
+            ulong streamLength = (ulong)stream.Length;
+            return offset <= streamLength && size <= streamLength - offset;
+        }
+
+        private static bool TryParseDebugLinkSection(byte[] sectionData, out string debugLink)
+        {
+            debugLink = null;
+
+            int crcOffset = sectionData.Length - DebugLinkCrcSize;
+            int nullPos = Array.IndexOf(sectionData, (byte)0, 0, crcOffset);
+            if (nullPos <= 0)
+            {
+                return false;
+            }
+
+            int alignedCrcOffset = (nullPos + 1 + 3) & ~3;
+            if (alignedCrcOffset != crcOffset)
+            {
+                return false;
+            }
+
+            for (int i = nullPos + 1; i < crcOffset; i++)
+            {
+                if (sectionData[i] != 0)
+                {
+                    return false;
+                }
+            }
+
+            try
+            {
+                debugLink = StrictUtf8.GetString(sectionData, 0, nullPos);
+            }
+            catch (DecoderFallbackException)
+            {
+                return false;
+            }
+
+            if (!IsValidDebugLinkFileName(debugLink))
+            {
+                debugLink = null;
+                return false;
+            }
+
+            return true;
+        }
 
         /// <summary>
         /// Common fields extracted from an ELF header (Ehdr) after validation.
@@ -566,6 +680,7 @@ namespace Microsoft.Diagnostics.Symbols
         private const int MaxShstrtabSize = 1024 * 1024;    // 1 MB
         private const int MinDebugLinkSectionSize = 6;       // 1-char filename + null + 4-byte CRC
         private const int MaxDebugLinkSectionSize = 4096;
+        private const int DebugLinkCrcSize = sizeof(uint);
 
         // Symbol table constants.
         private const byte STT_FUNC = 2;        // Symbol type: function.

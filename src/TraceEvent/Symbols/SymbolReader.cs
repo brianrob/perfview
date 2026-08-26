@@ -497,8 +497,8 @@ namespace Microsoft.Diagnostics.Symbols
                         if (debugLink != null)
                         {
                             // Try {bindir}/{debuglink}
-                            candidate = Path.Combine(elfDir, debugLink);
-                            if (ElfBuildIdMatches(candidate, normalizedBuildId))
+                            if (TryGetDebugLinkCandidate(elfDir, debugLink, out candidate) &&
+                                ElfBuildIdMatches(candidate, normalizedBuildId))
                             {
                                 resultPath = candidate;
                             }
@@ -506,8 +506,9 @@ namespace Microsoft.Diagnostics.Symbols
                             // Try {bindir}/.debug/{debuglink}
                             if (resultPath == null)
                             {
-                                candidate = Path.Combine(elfDir, ".debug", debugLink);
-                                if (ElfBuildIdMatches(candidate, normalizedBuildId))
+                                string debugDirectory = Path.Combine(elfDir, ".debug");
+                                if (TryGetDebugLinkCandidate(debugDirectory, debugLink, out candidate) &&
+                                    ElfBuildIdMatches(candidate, normalizedBuildId))
                                 {
                                     resultPath = candidate;
                                 }
@@ -604,6 +605,72 @@ namespace Microsoft.Diagnostics.Symbols
 
             m_elfPathCache.Add(cacheKey, resultPath);
             return resultPath;
+        }
+
+        /// <summary>
+        /// Constructs a debug-link candidate that is a direct child of the intended search directory.
+        /// </summary>
+        internal static bool TryGetDebugLinkCandidate(string searchDirectory, string debugLink, out string candidate)
+        {
+            candidate = null;
+            if (string.IsNullOrEmpty(searchDirectory) || !ElfSymbolModule.IsValidDebugLinkFileName(debugLink))
+            {
+                return false;
+            }
+
+            try
+            {
+                string canonicalSearchDirectory = NormalizeDirectoryPath(Path.GetFullPath(searchDirectory));
+                string canonicalCandidate = Path.GetFullPath(Path.Combine(canonicalSearchDirectory, debugLink));
+                string candidateDirectory = NormalizeDirectoryPath(Path.GetDirectoryName(canonicalCandidate));
+                StringComparison comparison = Path.DirectorySeparatorChar == '\\'
+                    ? StringComparison.OrdinalIgnoreCase
+                    : StringComparison.Ordinal;
+
+                if (!string.Equals(canonicalSearchDirectory, candidateDirectory, comparison))
+                {
+                    return false;
+                }
+
+                candidate = canonicalCandidate;
+                return true;
+            }
+            catch (ArgumentException)
+            {
+                return false;
+            }
+            catch (NotSupportedException)
+            {
+                return false;
+            }
+            catch (PathTooLongException)
+            {
+                return false;
+            }
+            catch (System.Security.SecurityException)
+            {
+                return false;
+            }
+        }
+
+        private static string NormalizeDirectoryPath(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+            {
+                return path;
+            }
+
+            string root = Path.GetPathRoot(path);
+            int minimumLength = root == null ? 0 : root.Length;
+            int length = path.Length;
+            while (length > minimumLength &&
+                   (path[length - 1] == Path.DirectorySeparatorChar ||
+                    path[length - 1] == Path.AltDirectorySeparatorChar))
+            {
+                length--;
+            }
+
+            return length == path.Length ? path : path.Substring(0, length);
         }
 
         // Find an executable file path (not a PDB) based on information about the file image.  
@@ -2850,4 +2917,3 @@ namespace Microsoft.Diagnostics.Symbols
         #endregion
     }
 }
-
