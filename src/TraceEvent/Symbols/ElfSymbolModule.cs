@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
+using Microsoft.Diagnostics.Utilities;
 
 namespace Microsoft.Diagnostics.Symbols
 {
@@ -355,54 +356,6 @@ namespace Microsoft.Diagnostics.Symbols
         private static readonly byte[] GnuDebugLinkName = Encoding.UTF8.GetBytes(".gnu_debuglink");
         private static readonly UTF8Encoding StrictUtf8 = new UTF8Encoding(false, true);
 
-        /// <summary>
-        /// Returns whether <paramref name="fileName"/> is a platform-independent single file name.
-        /// </summary>
-        internal static bool IsValidDebugLinkFileName(string fileName)
-        {
-            if (string.IsNullOrEmpty(fileName) ||
-                fileName == "." ||
-                fileName == ".." ||
-                fileName[fileName.Length - 1] == ' ' ||
-                fileName[fileName.Length - 1] == '.')
-            {
-                return false;
-            }
-
-            for (int i = 0; i < fileName.Length; i++)
-            {
-                char c = fileName[i];
-                if (c < 0x20 || c == '<' || c == '>' || c == ':' || c == '"' ||
-                    c == '/' || c == '\\' || c == '|' || c == '?' || c == '*')
-                {
-                    return false;
-                }
-            }
-
-            // Windows treats these names as devices even when an extension is present.
-            int extensionPos = fileName.IndexOf('.');
-            string baseName = extensionPos >= 0 ? fileName.Substring(0, extensionPos) : fileName;
-            if (baseName.Equals("CON", StringComparison.OrdinalIgnoreCase) ||
-                baseName.Equals("PRN", StringComparison.OrdinalIgnoreCase) ||
-                baseName.Equals("AUX", StringComparison.OrdinalIgnoreCase) ||
-                baseName.Equals("NUL", StringComparison.OrdinalIgnoreCase) ||
-                IsNumberedDeviceName(baseName, "COM") ||
-                IsNumberedDeviceName(baseName, "LPT"))
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        private static bool IsNumberedDeviceName(string fileName, string prefix)
-        {
-            return fileName.Length == prefix.Length + 1 &&
-                   fileName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) &&
-                   fileName[prefix.Length] >= '1' &&
-                   fileName[prefix.Length] <= '9';
-        }
-
         private static bool IsValidFileRange(Stream stream, ulong offset, ulong size)
         {
             ulong streamLength = (ulong)stream.Length;
@@ -413,6 +366,8 @@ namespace Microsoft.Diagnostics.Symbols
         {
             debugLink = null;
 
+            // Reserve the final four bytes for the CRC so zero bytes in the CRC cannot be
+            // mistaken for the filename's required null terminator.
             int crcOffset = sectionData.Length - DebugLinkCrcSize;
             int nullPos = Array.IndexOf(sectionData, (byte)0, 0, crcOffset);
             if (nullPos <= 0)
@@ -420,12 +375,14 @@ namespace Microsoft.Diagnostics.Symbols
                 return false;
             }
 
+            // The CRC starts at the next 4-byte boundary after the null-terminated filename.
             int alignedCrcOffset = (nullPos + 1 + 3) & ~3;
             if (alignedCrcOffset != crcOffset)
             {
                 return false;
             }
 
+            // GNU requires any bytes between the filename terminator and aligned CRC to be zero.
             for (int i = nullPos + 1; i < crcOffset; i++)
             {
                 if (sectionData[i] != 0)
@@ -434,6 +391,7 @@ namespace Microsoft.Diagnostics.Symbols
                 }
             }
 
+            // Decode without replacement characters so malformed section bytes fail explicitly.
             try
             {
                 debugLink = StrictUtf8.GetString(sectionData, 0, nullPos);
@@ -443,7 +401,8 @@ namespace Microsoft.Diagnostics.Symbols
                 return false;
             }
 
-            if (!IsValidDebugLinkFileName(debugLink))
+            // The section value is a filename, not a path. Reject it before any path construction.
+            if (!PathUtilities.IsSafeFileName(debugLink))
             {
                 debugLink = null;
                 return false;

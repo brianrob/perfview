@@ -855,6 +855,9 @@ namespace TraceEventTests
         [InlineData("foo.debug ")]
         [InlineData("CON")]
         [InlineData("NUL.debug")]
+        [InlineData("COM0")]
+        [InlineData("CLOCK$.debug")]
+        [InlineData("foo\u007f.debug")]
         public void ReadDebugLink_InvalidFileName_ReturnsNull(string debugLink)
         {
             byte[] data = new ElfBuilder()

@@ -11,6 +11,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Net;
 using System.Net.Http;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -1067,7 +1068,7 @@ namespace TraceEventTests
             Assert.True(SymbolReader.TryGetDebugLinkCandidate(searchDirectory, "foo.debug", out string candidate));
             Assert.Equal("foo.debug", Path.GetFileName(candidate));
 
-            StringComparer comparer = Path.DirectorySeparatorChar == '\\'
+            StringComparer comparer = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? StringComparer.OrdinalIgnoreCase
                 : StringComparer.Ordinal;
             Assert.Equal(Path.GetFullPath(searchDirectory), Path.GetDirectoryName(candidate), comparer);
@@ -1085,6 +1086,72 @@ namespace TraceEventTests
         {
             Assert.False(SymbolReader.TryGetDebugLinkCandidate(OutputDir, debugLink, out string candidate));
             Assert.Null(candidate);
+        }
+
+        [Theory]
+        [InlineData(".debug")]
+        [InlineData(".dbg")]
+        public void FindElfSymbolFilePath_ExecutableSuffixCandidateRemainsAdjacent(string suffix)
+        {
+            string tempDir = Path.Combine(OutputDir, "elf-adjacent-suffix-" + suffix.Substring(1));
+            try
+            {
+                const string buildId = "66778899";
+                Directory.CreateDirectory(tempDir);
+                string binaryPath = Path.Combine(tempDir, "libsuffix.so");
+                File.WriteAllBytes(binaryPath, new ElfBuilder().Build());
+
+                string debugPath = binaryPath + suffix;
+                File.WriteAllBytes(debugPath, CreateMinimalElfWithBuildId(buildId));
+
+                string emptySymbolDirectory = Path.Combine(tempDir, "empty");
+                Directory.CreateDirectory(emptySymbolDirectory);
+                _symbolReader.SymbolPath = emptySymbolDirectory;
+                _symbolReader.SecurityCheck = _ => true;
+
+                string result = _symbolReader.FindElfSymbolFilePath(
+                    "libsuffix.so",
+                    buildId,
+                    elfFilePath: binaryPath);
+
+                Assert.Equal(debugPath, result);
+                Assert.Equal(
+                    Path.GetFullPath(tempDir),
+                    Path.GetDirectoryName(Path.GetFullPath(result)));
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                    Directory.Delete(tempDir, true);
+            }
+        }
+
+        [Theory]
+        [InlineData("../relative/libunsafe.so")]
+        [InlineData(@"C:relative\libunsafe.so")]
+        [InlineData(@"\\server\share\libunsafe.so")]
+        [InlineData(@"\\?\C:\libunsafe.so")]
+        [InlineData(@"\\.\C:\libunsafe.so")]
+        public void FindElfSymbolFilePath_UnsafeExecutablePathCausesNoAccess(string executablePath)
+        {
+            string emptySymbolDirectory = Path.Combine(OutputDir, "elf-unsafe-path-empty");
+            Directory.CreateDirectory(emptySymbolDirectory);
+            var securityChecks = new List<string>();
+            _symbolReader.SymbolPath = emptySymbolDirectory;
+            _symbolReader.SecurityCheck = path =>
+            {
+                securityChecks.Add(path);
+                return true;
+            };
+
+            string result = _symbolReader.FindElfSymbolFilePath(
+                "libunsafe.so",
+                "1234abcd",
+                elfFilePath: executablePath);
+
+            Assert.Null(result);
+            Assert.Empty(securityChecks);
+            Assert.Empty(_handler.Requests);
         }
 
         [Fact]
