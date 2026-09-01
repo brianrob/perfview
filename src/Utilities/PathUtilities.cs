@@ -118,7 +118,8 @@ namespace Microsoft.Diagnostics.Utilities
         /// </summary>
         public static bool IsSafeFileName(string name)
         {
-            return string.Equals(name, SanitizeFileName(name), StringComparison.Ordinal);
+            return name != null &&
+                string.Equals(name, SanitizeFileName(name), StringComparison.Ordinal);
         }
 
         /// <summary>
