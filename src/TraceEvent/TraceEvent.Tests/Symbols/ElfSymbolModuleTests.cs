@@ -948,27 +948,6 @@ namespace TraceEventTests
         }
 
         [Fact]
-        public void MatchOrInitPE_WhenElf_ReturnsNull()
-        {
-            var moduleFile = new TraceModuleFile(null, 0, (ModuleFileIndex)0);
-            moduleFile.MatchOrInitElf(); // Set as ELF first
-
-            // Suppress Debug.Assert so we can verify the return value.
-            var listeners = new TraceListener[Trace.Listeners.Count];
-            Trace.Listeners.CopyTo(listeners, 0);
-            Trace.Listeners.Clear();
-            try
-            {
-                var pe = moduleFile.MatchOrInitPE();
-                Assert.Null(pe);
-            }
-            finally
-            {
-                Trace.Listeners.AddRange(listeners);
-            }
-        }
-
-        [Fact]
         public void MatchOrInitElf_WhenNull_CreatesElfSymbolInfo()
         {
             var moduleFile = new TraceModuleFile(null, 0, (ModuleFileIndex)0);
@@ -985,27 +964,6 @@ namespace TraceEventTests
             var elf1 = moduleFile.MatchOrInitElf();
             var elf2 = moduleFile.MatchOrInitElf();
             Assert.Same(elf1, elf2);
-        }
-
-        [Fact]
-        public void MatchOrInitElf_WhenPE_ReturnsNull()
-        {
-            var moduleFile = new TraceModuleFile(null, 0, (ModuleFileIndex)0);
-            moduleFile.MatchOrInitPE(); // Set as PE first
-
-            // Suppress Debug.Assert so we can verify the return value.
-            var listeners = new TraceListener[Trace.Listeners.Count];
-            Trace.Listeners.CopyTo(listeners, 0);
-            Trace.Listeners.Clear();
-            try
-            {
-                var elf = moduleFile.MatchOrInitElf();
-                Assert.Null(elf);
-            }
-            finally
-            {
-                Trace.Listeners.AddRange(listeners);
-            }
         }
 
         #endregion
@@ -1041,5 +999,62 @@ namespace TraceEventTests
         }
 
         #endregion
+    }
+
+    /// <summary>
+    /// Defines the tests that temporarily modify the process-wide trace listener collection.
+    /// </summary>
+    [CollectionDefinition("Trace listener mutation tests", DisableParallelization = true)]
+    public sealed class TraceListenerMutationTestCollection
+    {
+    }
+
+    /// <summary>
+    /// Verifies binary-format mismatch behavior that intentionally triggers and suppresses assertions.
+    /// </summary>
+    [Collection("Trace listener mutation tests")]
+    public class TraceListenerMutationTests
+    {
+        [Fact]
+        public void MatchOrInitPE_WhenElf_ReturnsNull()
+        {
+            var moduleFile = new TraceModuleFile(null, 0, (ModuleFileIndex)0);
+            moduleFile.MatchOrInitElf(); // Set as ELF first
+
+            // Suppress Debug.Assert so we can verify the return value.
+            var listeners = new TraceListener[Trace.Listeners.Count];
+            Trace.Listeners.CopyTo(listeners, 0);
+            Trace.Listeners.Clear();
+            try
+            {
+                var pe = moduleFile.MatchOrInitPE();
+                Assert.Null(pe);
+            }
+            finally
+            {
+                Trace.Listeners.AddRange(listeners);
+            }
+        }
+
+        [Fact]
+        public void MatchOrInitElf_WhenPE_ReturnsNull()
+        {
+            var moduleFile = new TraceModuleFile(null, 0, (ModuleFileIndex)0);
+            moduleFile.MatchOrInitPE(); // Set as PE first
+
+            // Suppress Debug.Assert so we can verify the return value.
+            var listeners = new TraceListener[Trace.Listeners.Count];
+            Trace.Listeners.CopyTo(listeners, 0);
+            Trace.Listeners.Clear();
+            try
+            {
+                var elf = moduleFile.MatchOrInitElf();
+                Assert.Null(elf);
+            }
+            finally
+            {
+                Trace.Listeners.AddRange(listeners);
+            }
+        }
     }
 }
