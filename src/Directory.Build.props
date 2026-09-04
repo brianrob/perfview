@@ -14,7 +14,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>portable</DebugType>
     <PublishRepositoryUrl>false</PublishRepositoryUrl>
-    <EmbedAllSources>true</EmbedAllSources>
+    <EmbedAllSources>false</EmbedAllSources>
   </PropertyGroup>
 
   <PropertyGroup>
