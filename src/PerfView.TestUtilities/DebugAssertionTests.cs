@@ -62,17 +62,26 @@
 
     internal static class DebugAssertionTestConfiguration
     {
+        /// <summary>
+        /// Verifies the runtime-specific configuration used to ensure assertion failures throw instead of
+        /// displaying interactive UI or being ignored.
+        /// </summary>
+        /// <remarks>
+        /// <para>On .NET Framework, each test assembly's app.config removes the DefaultTraceListener and
+        /// registers ThrowingTraceListener, which converts assertion failures into xUnit failures.</para>
+        /// <para>Modern .NET does not process the app.config diagnostics section, but its built-in assertion
+        /// behavior already throws. The assertion tests verify that behavior directly, so there is no listener
+        /// configuration to validate on that runtime.</para>
+        /// </remarks>
         internal static void AssertValid()
         {
-            // .NET Framework registers ThrowingTraceListener through app.config. Modern .NET does not
-            // process that configuration, but its assertion implementation already throws as the tests verify.
             if (!RuntimeInformation.FrameworkDescription.StartsWith(".NET Framework", StringComparison.OrdinalIgnoreCase))
             {
                 return;
             }
 
-            // Validate the existing process-wide configuration without repairing it so a misconfigured
-            // test assembly fails promptly instead of silently changing the behavior under test.
+            // Only inspect the existing process-wide configuration. Silently repairing Trace.Listeners here
+            // would change the behavior under test and could race with concurrent access from other tests.
             string configurationFile = AppDomain.CurrentDomain.GetData("APP_CONFIG_FILE") as string;
             bool foundThrowingTraceListener = false;
             foreach (TraceListener listener in Trace.Listeners)
