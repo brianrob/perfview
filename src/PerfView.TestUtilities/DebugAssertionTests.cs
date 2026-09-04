@@ -64,11 +64,15 @@
     {
         internal static void AssertValid()
         {
+            // .NET Framework registers ThrowingTraceListener through app.config. Modern .NET does not
+            // process that configuration, but its assertion implementation already throws as the tests verify.
             if (!RuntimeInformation.FrameworkDescription.StartsWith(".NET Framework", StringComparison.OrdinalIgnoreCase))
             {
                 return;
             }
 
+            // Validate the existing process-wide configuration without repairing it so a misconfigured
+            // test assembly fails promptly instead of silently changing the behavior under test.
             string configurationFile = AppDomain.CurrentDomain.GetData("APP_CONFIG_FILE") as string;
             bool foundThrowingTraceListener = false;
             foreach (TraceListener listener in Trace.Listeners)
