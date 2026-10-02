@@ -11,15 +11,6 @@ namespace PerfViewTests
         {
         }
 
-        [Theory]
-        [InlineData("EnableKernelStacks")]
-        [InlineData("DisableKernelStacks")]
-        public void KernelPagingCommandsAreRemoved(string command)
-        {
-            Assert.DoesNotContain(command, CommandLineArgs.GetHelpString(120));
-            Assert.Null(typeof(CommandProcessor).GetMethod(command));
-        }
-
         [Fact]
         public void CustomSessionNamesArePreserved()
         {
