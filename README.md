@@ -14,6 +14,9 @@ PerfView requires .NET Framework 4.7.2 or later, which is widely available for a
 PerfView and TraceEvent require Windows 10 or Windows Server 2016 or later when running on Windows.
 TraceEvent's existing cross-platform capabilities are unchanged. Installed .NET runtimes and optional components may have additional requirements.
 
+PerfView and PerfViewCollect are x64 applications; Windows-provided x64 emulation may be used where available.
+They can still collect from x86 target processes. TraceEvent retains its x86, x64, and ARM64 support.
+
 ### Are you here about the TraceEvent Library?
 
 PerfView is built on a library called Microsoft.Diagnostics.Tracing.TraceEvent, that knows how to both collect and parse Event Tracing for Windows (ETW) and EventPipe (.NET Core trace) data. Thus if there is any information that PerfView collects and processes that you would like to manipulate yourself programmatically, you would probably be interested in the [TraceEvent Library Documentation](documentation/TraceEvent/TraceEventLibrary.md)
