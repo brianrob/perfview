@@ -219,19 +219,7 @@ namespace Utilities
         /// </summary>
         public static ProcessorArchitecture ProcessArch
         {
-            get
-            {
-                if (s_ProcessArch == ProcessorArchitecture.None)
-                {
-                    var processorArchitecture = Environment.GetEnvironmentVariable("PROCESSOR_ARCHITECTURE");
-                    if (!Enum.TryParse(processorArchitecture, ignoreCase: true, result: out s_ProcessArch))
-                    {
-                        s_ProcessArch = Environment.Is64BitProcess ? ProcessorArchitecture.Amd64 : ProcessorArchitecture.X86;
-                    }
-                }
-
-                return s_ProcessArch;
-            }
+            get { return ProcessorArchitecture.Amd64; }
         }
 
         /// <summary>
@@ -240,15 +228,7 @@ namespace Utilities
         /// </summary>
         public static string ProcessArchitectureDirectory
         {
-            get
-            {
-                if (s_ProcessArchDirectory == null)
-                {
-                    s_ProcessArchDirectory = ProcessArch.ToString().ToLowerInvariant();
-                }
-
-                return s_ProcessArchDirectory;
-            }
+            get { return "amd64"; }
         }
 
         /// <summary>
@@ -265,13 +245,10 @@ namespace Utilities
             {
                 if (!File.Exists(fullPath))
                 {
-                    if (ProcessArch != ProcessorArchitecture.X86)
+                    var x86FullPath = Path.Combine(SupportFileDir, "x86", relativePath);
+                    if (File.Exists(x86FullPath))
                     {
-                        var x86FullPath = Path.Combine(SupportFileDir, "x86", relativePath);
-                        if (File.Exists(x86FullPath))
-                        {
-                            throw new ApplicationException("This operation is not supported for the " + ProcessArch + " architecture.");
-                        }
+                        throw new ApplicationException("This operation is not supported for the " + ProcessArch + " architecture.");
                     }
                     throw new ApplicationException("Could not find DLL " + archPath + " in distribution.  Application Error.");
                 }
@@ -395,10 +372,6 @@ namespace Utilities
         /// </summary>
         [System.Runtime.InteropServices.DllImport("kernel32", SetLastError = true)]
         private static extern IntPtr LoadLibrary(string lpFileName);
-
-
-        private static ProcessorArchitecture s_ProcessArch;
-        private static string s_ProcessArchDirectory;
 
 
         private static string s_supportFileDir;

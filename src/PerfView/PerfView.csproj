@@ -567,25 +567,11 @@
       <Link>Microsoft.Web.WebView2.Wpf.dll</Link>
       <Visible>False</Visible>
     </EmbeddedResource>
-    <EmbeddedResource Include="$(PkgMicrosoft_Web_WebView2)\runtimes\win-x86\native\WebView2Loader.dll">
-      <Type>Non-Resx</Type>
-      <WithCulture>false</WithCulture>
-      <LogicalName>.\runtimes\win-x86\native\WebView2Loader.dll</LogicalName>
-      <Link>runtimes\win-x86\native\WebView2Loader.dll</Link>
-      <Visible>False</Visible>
-    </EmbeddedResource>
     <EmbeddedResource Include="$(PkgMicrosoft_Web_WebView2)\runtimes\win-x64\native\WebView2Loader.dll">
       <Type>Non-Resx</Type>
       <WithCulture>false</WithCulture>
       <LogicalName>.\runtimes\win-x64\native\WebView2Loader.dll</LogicalName>
       <Link>runtimes\win-x64\native\WebView2Loader.dll</Link>
-      <Visible>False</Visible>
-    </EmbeddedResource>
-    <EmbeddedResource Include="$(PkgMicrosoft_Web_WebView2)\runtimes\win-arm64\native\WebView2Loader.dll">
-      <Type>Non-Resx</Type>
-      <WithCulture>false</WithCulture>
-      <LogicalName>.\runtimes\win-arm64\native\WebView2Loader.dll</LogicalName>
-      <Link>runtimes\win-arm64\native\WebView2Loader.dll</Link>
       <Visible>False</Visible>
     </EmbeddedResource>
     <EmbeddedResource Include="$(PkgMicrosoft_IdentityModel_Tokens)\lib\net462\Microsoft.IdentityModel.Tokens.dll">
