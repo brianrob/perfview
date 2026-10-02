@@ -14,7 +14,7 @@ namespace PerfViewTests
         {
             using (var process = Process.GetCurrentProcess())
             {
-                Assert.Equal(ProcessorArchitecture.Amd64, GetTargetArchitecture(process));
+                Assert.Equal(ProcessorArchitecture.Amd64, HeapDumper.GetArchForProcess(process.Id));
             }
         }
 
@@ -33,7 +33,7 @@ namespace PerfViewTests
             {
                 try
                 {
-                    Assert.Equal(ProcessorArchitecture.X86, GetTargetArchitecture(process));
+                    Assert.Equal(ProcessorArchitecture.X86, HeapDumper.GetArchForProcess(process.Id));
                 }
                 finally
                 {
@@ -45,12 +45,6 @@ namespace PerfViewTests
                     }
                 }
             }
-        }
-
-        private static ProcessorArchitecture GetTargetArchitecture(Process process)
-        {
-            var method = typeof(HeapDumper).GetMethod("GetArchForProcess", BindingFlags.NonPublic | BindingFlags.Static);
-            return (ProcessorArchitecture)method.Invoke(null, new object[] { process.Id });
         }
     }
 }

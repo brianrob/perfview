@@ -194,7 +194,7 @@ namespace PerfView
         /// <summary>
         /// Returns processor architecture for a process with a specific process ID.
         /// </summary>
-        private static ProcessorArchitecture GetArchForProcess(int processID)
+        internal static ProcessorArchitecture GetArchForProcess(int processID)
         {
             try
             {
