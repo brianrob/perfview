@@ -42,9 +42,6 @@ Its module initializer throws `PlatformNotSupportedException` on older Windows;
 the CLR may wrap this in an initialization exception. This check is skipped on
 Linux and macOS, preserving the library's existing cross-platform capabilities.
 Older traces and target runtimes can still be analyzed on supported hosts.
-The library remains architecture-neutral, with x86, x64, and ARM64 native assets.
-This Windows baseline does not make ETW available on Linux or macOS, and individual
-features such as last-branch recording and kernel stack caching require later Windows builds.
 
 ## TraceEvent Samples
 
