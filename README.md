@@ -16,6 +16,9 @@ TraceEvent's existing cross-platform capabilities are unchanged. Installed .NET 
 
 PerfView and PerfViewCollect are x64 applications; Windows-provided x64 emulation may be used where available.
 They can still collect from x86 target processes. TraceEvent retains its x86, x64, and ARM64 support.
+There is no native ARM64 PerfView application build. PerfViewCollect requires the matching
+x64 .NET runtime, whose supported Windows releases may be more restrictive.
+Historical trace files and older target runtimes remain supported for analysis.
 
 ### Are you here about the TraceEvent Library?
 

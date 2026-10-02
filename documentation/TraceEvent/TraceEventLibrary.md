@@ -42,13 +42,17 @@ Its module initializer throws `PlatformNotSupportedException` on older Windows;
 the CLR may wrap this in an initialization exception. This check is skipped on
 Linux and macOS, preserving the library's existing cross-platform capabilities.
 Older traces and target runtimes can still be analyzed on supported hosts.
+The library remains architecture-neutral, with x86, x64, and ARM64 native assets.
+This Windows baseline does not make ETW available on Linux or macOS, and individual
+features such as last-branch recording and kernel stack caching require later Windows builds.
 
 ## TraceEvent Samples
 
 To see more complete samples that use the APIs in more sophisticated (but not too sophisticated ways). In the [Samples directory](https://github.com/Microsoft/perfview/tree/main/src/TraceEvent/Samples) here are one or two page samples doing interesting things (collecting data, parsing from files or in real time, transforming one ETL file to another etc). Each sample is independent of the others.
 
-One way of getting the samples is to walk through the step by step guide in [Vance's Walkthough on TraceEvent](https://blogs.msdn.microsoft.com/vancem/2014/03/15/walk-through-getting-started-with-etw-traceevent-nuget-samples-package/). This walkthrough uses TraceEvent Samples package, however this code is old (but still completely relevant
-the APIs have not changed). These samples are exactly the samples in Github mentioned above.
+The historical [walkthrough on TraceEvent](https://blogs.msdn.microsoft.com/vancem/2014/03/15/walk-through-getting-started-with-etw-traceevent-nuget-samples-package/)
+uses an older samples package. Use the current GitHub samples above for the supported
+Windows baseline; Windows 7-specific examples have been retired.
 
 The easiest way to build the latest samples is to simply clone the [PerfView Repository](https://github.com/Microsoft/perfview) and and build it. The samples are in the _TraceEventSamples_ project in the PerfView solution. Simply set this project to be your _Startup Project_ (right click on it in Solution Explorer -> Set as Startup Project) and run it (F5). By default will run all the samples.
 
