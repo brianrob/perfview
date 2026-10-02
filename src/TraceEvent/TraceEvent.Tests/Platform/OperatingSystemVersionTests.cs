@@ -1,4 +1,5 @@
 using Microsoft.Diagnostics.Utilities;
+using Microsoft.Diagnostics.Tracing.Session;
 using System;
 using System.ComponentModel;
 using System.IO;
@@ -6,6 +7,7 @@ using System.Linq;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using System.Reflection.PortableExecutable;
+using System.Runtime.InteropServices;
 using Xunit;
 
 namespace TraceEventTests
@@ -45,6 +47,12 @@ namespace TraceEventTests
         }
 
         [Fact]
+        public void EtwFilteringIsOnlyAvailableOnWindows()
+        {
+            Assert.Equal(RuntimeInformation.IsOSPlatform(OSPlatform.Windows), TraceEventProviderOptions.FilteringSupported);
+        }
+
+        [Fact]
         public void ModuleConstructorCallsPlatformInitializer()
         {
             using (var stream = File.OpenRead(typeof(OperatingSystemVersion).Assembly.Location))
@@ -62,8 +70,8 @@ namespace TraceEventTests
                         metadata.GetString(metadata.GetTypeDefinition(method.GetDeclaringType()).Name) == "PlatformInitializer";
                 });
                 var il = pe.GetMethodBody(metadata.GetMethodDefinition(constructor).RelativeVirtualAddress).GetILBytes();
-                Assert.True(Enumerable.Range(0, il.Length - 4).Any(offset =>
-                    il[offset] == 0x28 && BitConverter.ToInt32(il, offset + 1) == MetadataTokens.GetToken(initializer)));
+                Assert.Contains(Enumerable.Range(0, il.Length - 4), offset =>
+                    il[offset] == 0x28 && BitConverter.ToInt32(il, offset + 1) == MetadataTokens.GetToken(initializer));
             }
         }
     }
