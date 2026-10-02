@@ -67,7 +67,8 @@
   <Target Name="CopyTraceEventNativeFilesToTarget" AfterTargets="Build">
     <ItemGroup>
       <TraceEventNativeFiles
-        Include="$(TraceEventSupportFilesBase)native\**\*.*" />
+        Include="$(TraceEventSupportFilesBase)native\**\*.*"
+        Exclude="$(TraceEventSupportFilesBase)native\x86\KernelTraceControl.Win61.dll;$(TraceEventSupportFilesBase)native\arm\**\*.*" />
     </ItemGroup>
     <Copy
       SourceFiles="@(TraceEventNativeFiles)"
@@ -77,7 +78,8 @@
   <Target Name="CopyTraceEventNativeFilesToPublish" AfterTargets="Publish">
     <ItemGroup>
       <TraceEventNativeFiles
-        Include="$(TraceEventSupportFilesBase)native\**\*.*" />
+        Include="$(TraceEventSupportFilesBase)native\**\*.*"
+        Exclude="$(TraceEventSupportFilesBase)native\x86\KernelTraceControl.Win61.dll;$(TraceEventSupportFilesBase)native\arm\**\*.*" />
     </ItemGroup>
     <Copy
       SourceFiles="@(TraceEventNativeFiles)"
